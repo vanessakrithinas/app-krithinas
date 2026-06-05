@@ -8,6 +8,7 @@ const sum = (a, f) => a.reduce((s, r) => s + (+r[f] || 0), 0)
 const noites = r => r.entrada && r.saida ? Math.round((new Date(r.saida) - new Date(r.entrada)) / 864e5) : 0
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 const mesL = m => { const [y, mo] = m.split('-'); return MESES[+mo - 1] + ' ' + y }
+const MESES_DISPONIVEIS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06']
 
 // ── nav config ─────────────────────────────────────────────────────────────
 const NAV = [
@@ -94,6 +95,30 @@ function Loading() {
   return <div className="loading"><i className="ti ti-loader" /> A carregar...</div>
 }
 
+// ── selector de mês ────────────────────────────────────────────────────────
+function MonthSelector({ mes, onChange }) {
+  const idx = MESES_DISPONIVEIS.indexOf(mes)
+  const prev = () => idx > 0 && onChange(MESES_DISPONIVEIS[idx - 1])
+  const next = () => idx < MESES_DISPONIVEIS.length - 1 && onChange(MESES_DISPONIVEIS[idx + 1])
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <button
+        onClick={prev}
+        disabled={idx === 0}
+        style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'not-allowed' : 'pointer', opacity: idx === 0 ? 0.3 : 1, color: 'var(--fg)', padding: '4px 6px', fontSize: 14 }}
+      >‹</button>
+      <span className="month-pill">
+        <i className="ti ti-calendar" style={{ fontSize: 12, verticalAlign: -1 }} /> {mesL(mes)}
+      </span>
+      <button
+        onClick={next}
+        disabled={idx === MESES_DISPONIVEIS.length - 1}
+        style={{ background: 'none', border: 'none', cursor: idx === MESES_DISPONIVEIS.length - 1 ? 'not-allowed' : 'pointer', opacity: idx === MESES_DISPONIVEIS.length - 1 ? 0.3 : 1, color: 'var(--fg)', padding: '4px 6px', fontSize: 14 }}
+      >›</button>
+    </div>
+  )
+}
+
 // ── modal ──────────────────────────────────────────────────────────────────
 function Modal({ title, ac, fields, onClose, onSave }) {
   const [form, setForm] = useState({})
@@ -131,32 +156,31 @@ function Modal({ title, ac, fields, onClose, onSave }) {
 // PAGES
 // ══════════════════════════════════════════════════════════════════════════
 
-function Dashboard({ data }) {
-  const m = '2026-01'
-  const vr = sum(data.vanessa_rendimentos.filter(x => x.mes === m), 'valor')
-  const vd = sum(data.vanessa_despesas.filter(x => x.mes === m), 'valor')
-  const md = sum(data.maezona_despesas.filter(x => x.mes === m), 'valor')
-  const mld = sum(data.milton_despesas.filter(x => x.mes === m), 'valor')
-  const vild = sum(data.villa_despesas.filter(x => x.mes === m), 'valor')
+function Dashboard({ data, mes }) {
+  const vr = sum(data.vanessa_rendimentos.filter(x => x.mes === mes), 'valor')
+  const vd = sum(data.vanessa_despesas.filter(x => x.mes === mes), 'valor')
+  const md = sum(data.maezona_despesas.filter(x => x.mes === mes), 'valor')
+  const mld = sum(data.milton_despesas.filter(x => x.mes === mes), 'valor')
+  const vild = sum(data.villa_despesas.filter(x => x.mes === mes), 'valor')
   const tc = sum(data.milton_concertos, 'valor')
-  const cR = sum(data.copa_receitas.filter(x => x.mes === m), 'valor_brl')
-  const cD = sum(data.copa_despesas.filter(x => x.mes === m), 'valor_brl')
+  const cR = sum(data.copa_receitas.filter(x => x.mes === mes), 'valor_brl')
+  const cD = sum(data.copa_despesas.filter(x => x.mes === mes), 'valor_brl')
 
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Rendimento Vanessa" value={eur(vr)} sub="Jan 2026" ac="var(--gold2)" />
+        <StatCard label="Rendimento Vanessa" value={eur(vr)} sub={mesL(mes)} ac="var(--gold2)" />
         <StatCard label="Despesas família PT" value={eur(vd + md + mld)} sub="Vanessa · Mãe · Milton" ac="var(--red2)" />
-        <StatCard label="Saldo Vanessa" value={<Chip v={vr - vd} />} sub="Jan 2026" ac="var(--gold2)" />
+        <StatCard label="Saldo Vanessa" value={<Chip v={vr - vd} />} sub={mesL(mes)} ac="var(--gold2)" />
         <StatCard label="Concertos Milton" value={eur(tc)} sub={`${data.milton_concertos.length} actuações`} ac="var(--violet2)" />
       </div>
       <div className="stat-grid">
-        <StatCard label="Copa — saldo Jan" value={brl(cR - cD)} sub={`≈ ${eur((cR - cD) * 0.18)} est.`} ac="var(--blue2)" />
+        <StatCard label={`Copa — saldo ${mesL(mes)}`} value={brl(cR - cD)} sub={`≈ ${eur((cR - cD) * 0.18)} est.`} ac="var(--blue2)" />
         <StatCard label="Transferido PT" value={eur(sum(data.copa_transferencias, 'valor_eur'))} sub={`${data.copa_transferencias.length} transf.`} ac="var(--blue2)" />
         <StatCard label="Villa — reservas" value={`${data.villa_reservas.length} confirmadas`} sub="2026" ac="var(--green2)" />
-        <StatCard label="Villa — encargos Jan" value={eur(vild)} ac="var(--green2)" />
+        <StatCard label="Villa — encargos" value={eur(vild)} sub={mesL(mes)} ac="var(--green2)" />
       </div>
-      <SecHead label="Despesas por centro — Janeiro 2026" />
+      <SecHead label={`Despesas por centro — ${mesL(mes)}`} />
       {[
         { l: 'Vanessa — casa + vida quotidiana', v: vd, max: 2500, c: 'var(--gold2)' },
         { l: 'Mãezona — Queluz + Vilamoura + diversos', v: md, max: 2500, c: 'var(--teal2)' },
@@ -185,17 +209,21 @@ function Dashboard({ data }) {
   )
 }
 
-function VanessaPage({ data, reload }) {
+function VanessaPage({ data, mes, reload }) {
   const [tab, setTab] = useState('desp')
   const [modal, setModal] = useState(null)
-  const m = '2026-01'
-  const desp = data.vanessa_despesas.filter(x => x.mes === m)
-  const rend = data.vanessa_rendimentos.filter(x => x.mes === m)
+  const [catFiltro, setCatFiltro] = useState('todas')
+
+  const desp = data.vanessa_despesas.filter(x => x.mes === mes)
+  const rend = data.vanessa_rendimentos.filter(x => x.mes === mes)
   const free = data.vanessa_freelancers
   const td = sum(desp, 'valor'), tr = sum(rend, 'valor'), tf = sum(free, 'valor')
 
+  const cats = ['todas', ...Array.from(new Set(desp.map(x => x.categoria).filter(Boolean))).sort()]
+  const despFiltradas = catFiltro === 'todas' ? desp : desp.filter(x => x.categoria === catFiltro)
+
   const saves = {
-    desp: async f => { await db.insert('vanessa_despesas', { mes: m, categoria: f.categoria || 'Outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(null) },
+    desp: async f => { await db.insert('vanessa_despesas', { mes, categoria: f.categoria || 'outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(null) },
     free: async f => { await db.insert('vanessa_freelancers', { data: f.data, cliente: f.cliente, descricao: f.descricao, valor: +f.valor || 0, retencao: +f.retencao || 0, iva: +f.iva || 0, estado: f.estado || 'pago' }); reload(); setModal(null) },
   }
 
@@ -203,31 +231,53 @@ function VanessaPage({ data, reload }) {
     <>
       <div className="stat-grid">
         <StatCard label="Rendimento total" value={eur(tr + tf)} sub="Salário + freelance" ac="var(--gold2)" />
-        <StatCard label="Despesas Jan" value={eur(td)} ac="var(--red2)" />
-        <StatCard label="Saldo" value={<Chip v={tr + tf - td} />} sub="Jan 2026" ac="var(--gold2)" />
+        <StatCard label={`Despesas ${mesL(mes)}`} value={eur(td)} ac="var(--red2)" />
+        <StatCard label="Saldo" value={<Chip v={tr + tf - td} />} sub={mesL(mes)} ac="var(--gold2)" />
         <StatCard label="IVA freelance" value={eur(sum(free, 'iva'))} sub="A declarar" ac="var(--gold2)" />
       </div>
-      <Tabs items={[{ k: 'desp', l: 'Despesas' }, { k: 'rend', l: 'Rendimentos' }, { k: 'free', l: 'Freelance' }]} active={tab} onChange={setTab} />
-      {tab === 'desp' && <><SecHead label="Despesas — Janeiro 2026" onAdd={() => setModal('desp')} /><Tbl cols={[{ k: 'descricao', l: 'Descrição', n: true }, { k: 'categoria', l: 'Categoria' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
-      {tab === 'rend' && <><SecHead label="Rendimentos — Janeiro 2026" /><Tbl cols={[{ k: 'tipo', l: 'Tipo', n: true }, { k: 'entidade', l: 'Entidade', fn: r => r.entidade || '—' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rend} /></>}
-      {tab === 'free' && <><SecHead label="Freelance 2026" onAdd={() => setModal('free')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'cliente', l: 'Cliente', n: true }, { k: 'descricao', l: 'Descrição' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'retencao', l: 'Ret.', r: true, fn: r => r.retencao ? r.retencao + '%' : '—' }, { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? eur(r.iva) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={free} /></>}
-      {modal === 'desp' && <Modal title="Nova despesa — Vanessa" ac="var(--gold2)" fields={[{ k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['Casa', 'Transporte', 'Comunicações', 'Alimentação', 'Filhos', 'Saúde', 'Lazer', 'Outros'] }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(null)} onSave={saves.desp} />}
+      <Tabs items={[{ k: 'desp', l: 'Despesas' }, { k: 'rend', l: 'Rendimentos' }, { k: 'free', l: 'Freelance' }]} active={tab} onChange={t => { setTab(t); setCatFiltro('todas') }} />
+
+      {tab === 'desp' && (
+        <>
+          <div className="filter-row">
+            {cats.map(c => (
+              <button key={c} className={`fpill ${catFiltro === c ? 'active' : ''}`} onClick={() => setCatFiltro(c)}>
+                {c === 'todas' ? 'Todas' : c}
+              </button>
+            ))}
+          </div>
+          <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal('desp')} />
+          <Tbl cols={[{ k: 'descricao', l: 'Descrição', n: true }, { k: 'categoria', l: 'Categoria' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={despFiltradas} />
+        </>
+      )}
+      {tab === 'rend' && (
+        <>
+          <SecHead label={`Rendimentos — ${mesL(mes)}`} />
+          <Tbl cols={[{ k: 'tipo', l: 'Tipo', n: true }, { k: 'entidade', l: 'Entidade', fn: r => r.entidade || '—' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rend} />
+        </>
+      )}
+      {tab === 'free' && (
+        <>
+          <SecHead label="Freelance 2026" onAdd={() => setModal('free')} />
+          <Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'cliente', l: 'Cliente', n: true }, { k: 'descricao', l: 'Descrição' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'retencao', l: 'Ret.', r: true, fn: r => r.retencao ? r.retencao + '%' : '—' }, { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? eur(r.iva) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={free} />
+        </>
+      )}
+      {modal === 'desp' && <Modal title="Nova despesa — Vanessa" ac="var(--gold2)" fields={[{ k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['home', 'filhos', 'alimentacao', 'transporte', 'saude', 'entretenimento', 'pessoal', 'financeiro'] }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(null)} onSave={saves.desp} />}
       {modal === 'free' && <Modal title="Novo recibo freelance" ac="var(--gold2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'cliente', l: 'Cliente', t: 'text' }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'retencao', l: 'Retenção (%)', t: 'number' }, { k: 'iva', l: 'IVA (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(null)} onSave={saves.free} />}
     </>
   )
 }
 
-function MaezonaPage({ data, reload }) {
+function MaezonaPage({ data, mes, reload }) {
   const [prop, setProp] = useState('todos')
   const [modal, setModal] = useState(false)
-  const m = '2026-01'
-  const all = data.maezona_despesas.filter(x => x.mes === m)
+  const all = data.maezona_despesas.filter(x => x.mes === mes)
   const rows = prop === 'todos' ? all : all.filter(x => x.prop === prop)
   const q = sum(all.filter(x => x.prop === 'Queluz'), 'valor')
   const v = sum(all.filter(x => x.prop === 'Vilamoura'), 'valor')
   const dv = sum(all.filter(x => x.prop === 'Diversos'), 'valor')
 
-  const save = async f => { await db.insert('maezona_despesas', { mes: m, prop: f.prop || 'Queluz', categoria: f.categoria || 'Outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(false) }
+  const save = async f => { await db.insert('maezona_despesas', { mes, prop: f.prop || 'Queluz', categoria: f.categoria || 'Outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(false) }
 
   return (
     <>
@@ -235,25 +285,24 @@ function MaezonaPage({ data, reload }) {
         <StatCard label="Queluz" value={eur(q)} ac="var(--teal2)" />
         <StatCard label="Vilamoura" value={eur(v)} ac="var(--teal2)" />
         <StatCard label="Diversos" value={eur(dv)} ac="var(--teal2)" />
-        <StatCard label="Total Jan" value={eur(q + v + dv)} ac="var(--red2)" />
+        <StatCard label={`Total ${mesL(mes)}`} value={eur(q + v + dv)} ac="var(--red2)" />
       </div>
       <div className="filter-row">
         {['todos', 'Queluz', 'Vilamoura', 'Diversos'].map(x => (
           <button key={x} className={`fpill ${prop === x ? 'active' : ''}`} onClick={() => setProp(x)}>{x === 'todos' ? 'Todas' : x}</button>
         ))}
       </div>
-      <SecHead label="Despesas — Janeiro 2026" onAdd={() => setModal(true)} />
+      <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal(true)} />
       <Tbl cols={[{ k: 'prop', l: 'Prop.' }, { k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rows} />
       {modal && <Modal title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['Condomínio', 'Seguros', 'Energia', 'Água', 'Garagem', 'Comunicações', 'Saúde', 'Cuidadoras', 'Alimentação', 'Outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
     </>
   )
 }
 
-function MiltonPage({ data, reload }) {
+function MiltonPage({ data, mes, reload }) {
   const [tab, setTab] = useState('conc')
   const [modal, setModal] = useState(null)
-  const m = '2026-01'
-  const desp = data.milton_despesas.filter(x => x.mes === m)
+  const desp = data.milton_despesas.filter(x => x.mes === mes)
   const conc = data.milton_concertos
 
   const saveConc = async f => { await db.insert('milton_concertos', { data: f.data, descricao: f.descricao, entidade: f.entidade, nif: f.nif, localidade: f.localidade, valor: +f.valor || 0, iva: +f.iva || 0, estado: f.estado || 'Done' }); reload(); setModal(null) }
@@ -263,22 +312,22 @@ function MiltonPage({ data, reload }) {
       <div className="stat-grid">
         <StatCard label="Concertos 2026" value={eur(sum(conc, 'valor'))} sub={`${conc.length} actuações`} ac="var(--violet2)" />
         <StatCard label="IVA cobrado" value={eur(sum(conc, 'iva'))} ac="var(--violet2)" />
-        <StatCard label="Despesas fixas Jan" value={eur(sum(desp, 'valor'))} ac="var(--red2)" />
+        <StatCard label={`Despesas fixas ${mesL(mes)}`} value={eur(sum(desp, 'valor'))} ac="var(--red2)" />
         <StatCard label="Em curso" value={`${conc.filter(c => c.estado !== 'Done').length} actuações`} ac="var(--violet2)" />
       </div>
       <Tabs items={[{ k: 'conc', l: 'Concertos & Recibos' }, { k: 'desp', l: 'Despesas Casa Belas' }]} active={tab} onChange={setTab} />
       {tab === 'conc' && <><SecHead label="Recibos verdes 2026" onAdd={() => setModal('conc')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'descricao', l: 'Concerto', n: true }, { k: 'entidade', l: 'Entidade' }, { k: 'localidade', l: 'Local' }, { k: 'nif', l: 'NIF' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? eur(r.iva) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={conc} /></>}
-      {tab === 'desp' && <><SecHead label="Despesas — Janeiro 2026" /><Tbl cols={[{ k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
+      {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
       {modal === 'conc' && <Modal title="Novo concerto — Milton" ac="var(--violet2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'descricao', l: 'Concerto', t: 'text' }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'nif', l: 'NIF', t: 'text' }, { k: 'localidade', l: 'Localidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'iva', l: 'IVA (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['Done', 'In progress'] }]} onClose={() => setModal(null)} onSave={saveConc} />}
     </>
   )
 }
 
-function VillaPage({ data, reload }) {
+function VillaPage({ data, mes, reload }) {
   const [tab, setTab] = useState('res')
   const [modal, setModal] = useState(null)
   const res = data.villa_reservas
-  const desp = data.villa_despesas
+  const desp = data.villa_despesas.filter(x => x.mes === mes)
   const tr = sum(res.filter(r => r.tipo === 'Inquilino'), 'valor')
   const td = sum(desp, 'valor')
 
@@ -288,20 +337,20 @@ function VillaPage({ data, reload }) {
     <>
       <div className="stat-grid">
         <StatCard label="Receita reservas" value={eur(tr)} sub={`${res.length} reservas 2026`} ac="var(--green2)" />
-        <StatCard label="Encargos fixos Jan" value={eur(td)} ac="var(--red2)" />
-        <StatCard label="Resultado Jan" value={<Chip v={tr - td} />} ac="var(--green2)" />
+        <StatCard label={`Encargos ${mesL(mes)}`} value={eur(td)} ac="var(--red2)" />
+        <StatCard label="Resultado" value={<Chip v={tr - td} />} sub={mesL(mes)} ac="var(--green2)" />
         <StatCard label="Noites alugadas" value={`${res.filter(r => r.tipo === 'Inquilino').reduce((s, r) => s + noites(r), 0)} noites`} sub="2026" ac="var(--green2)" />
       </div>
       <div className="info-strip teal"><i className="ti ti-info-circle" /> Agosto: 650€/sem · 85€/dia &nbsp;|&nbsp; Outros meses: 600€/sem · 80€/dia</div>
       <Tabs items={[{ k: 'res', l: 'Calendário & Reservas' }, { k: 'desp', l: 'Encargos Fixos' }]} active={tab} onChange={setTab} />
       {tab === 'res' && <><SecHead label="Reservas 2026" onAdd={() => setModal('res')} /><Tbl cols={[{ k: 'entrada', l: 'Check-in' }, { k: 'saida', l: 'Check-out' }, { k: 'noites', l: 'Noites', fn: r => noites(r) }, { k: 'tipo', l: 'Tipo' }, { k: 'inquilino', l: 'Hóspede', n: true }, { k: 'canal', l: 'Canal' }, { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={res} /></>}
-      {tab === 'desp' && <><SecHead label="Encargos fixos — Jan 2026" /><Tbl cols={[{ k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
+      {tab === 'desp' && <><SecHead label={`Encargos — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
       {modal === 'res' && <Modal title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'entrada', l: 'Data entrada', t: 'date' }, { k: 'saida', l: 'Data saída', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Inquilino', 'Amigos', 'Família'] }, { k: 'inquilino', l: 'Nome / Quem', t: 'text' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo', 'Airbnb', 'Booking', 'Outro'] }, { k: 'valor', l: 'Receita (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['confirmado', 'pendente'] }]} onClose={() => setModal(null)} onSave={saveRes} />}
     </>
   )
 }
 
-function CopaPage({ data, reload }) {
+function CopaPage({ data, mes, reload }) {
   const [tab, setTab] = useState('res')
   const [modal, setModal] = useState(null)
   const rec = data.copa_receitas
@@ -337,10 +386,9 @@ function CopaPage({ data, reload }) {
 // ══════════════════════════════════════════════════════════════════════════
 const TABLES = ['vanessa_rendimentos','vanessa_despesas','vanessa_freelancers','maezona_despesas','milton_despesas','milton_concertos','villa_reservas','villa_despesas','copa_receitas','copa_despesas','copa_transferencias']
 
-const ADD_MAP = { vanessa: 'vD', maezona: 'mD', villa: 'vR', copa: 'cR', milton: 'mC' }
-
 export default function App() {
   const [page, setPage] = useState('dash')
+  const [mes, setMes] = useState('2026-01')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -359,16 +407,15 @@ export default function App() {
 
   useEffect(() => { load() }, [load])
 
-  const navigate = k => { setPage(k) }
   const n = NAV.find(x => x.k === page)
 
   const PAGES = {
-    dash: data ? <Dashboard data={data} /> : null,
-    vanessa: data ? <VanessaPage data={data} reload={load} /> : null,
-    maezona: data ? <MaezonaPage data={data} reload={load} /> : null,
-    milton: data ? <MiltonPage data={data} reload={load} /> : null,
-    villa: data ? <VillaPage data={data} reload={load} /> : null,
-    copa: data ? <CopaPage data={data} reload={load} /> : null,
+    dash:    data ? <Dashboard data={data} mes={mes} /> : null,
+    vanessa: data ? <VanessaPage data={data} mes={mes} reload={load} /> : null,
+    maezona: data ? <MaezonaPage data={data} mes={mes} reload={load} /> : null,
+    milton:  data ? <MiltonPage data={data} mes={mes} reload={load} /> : null,
+    villa:   data ? <VillaPage data={data} mes={mes} reload={load} /> : null,
+    copa:    data ? <CopaPage data={data} mes={mes} reload={load} /> : null,
   }
 
   return (
@@ -381,7 +428,7 @@ export default function App() {
         </div>
         <div className="nav-section">
           {NAV.map(x => (
-            <button key={x.k} className={`nav-item ${page === x.k ? 'active' : ''}`} style={{ '--ac': x.ac }} onClick={() => navigate(x.k)}>
+            <button key={x.k} className={`nav-item ${page === x.k ? 'active' : ''}`} style={{ '--ac': x.ac }} onClick={() => setPage(x.k)}>
               <div className="nav-avatar" style={{ background: x.bg, color: x.fg, border: `1.5px solid ${page === x.k ? x.fg + '66' : 'transparent'}` }}>{x.initials}</div>
               <div className="nav-label-wrap">
                 {x.label}
@@ -401,7 +448,7 @@ export default function App() {
             <div className="topbar-title">{TITLES[page]}</div>
           </div>
           <div className="topbar-right">
-            <span className="month-pill"><i className="ti ti-calendar" style={{ fontSize: 12, verticalAlign: -1 }} /> Jan 2026</span>
+            <MonthSelector mes={mes} onChange={setMes} />
           </div>
         </header>
 
