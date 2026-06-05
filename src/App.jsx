@@ -26,7 +26,29 @@ const TITLES = {
   villa: 'Villa Vilamoura', copa: 'Copa — Rio de Janeiro',
 }
 
-// ── shared components ──────────────────────────────────────────────────────
+// ── categoria cores ────────────────────────────────────────────────────────
+const CAT_COLORS = {
+  'alimentação':  { bg: '#FFF3E0', color: '#B45309', border: '#FDE68A' },
+  'casa':         { bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' },
+  'crédito':      { bg: '#FDF2F8', color: '#9D174D', border: '#FBCFE8' },
+  'filhos':       { bg: '#F0FDF4', color: '#15803D', border: '#BBF7D0' },
+  'financeiro':   { bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE' },
+  'pessoal':      { bg: '#FFF7ED', color: '#C2410C', border: '#FED7AA' },
+  'saúde':        { bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0' },
+  'transporte':   { bg: '#EFF6FF', color: '#075985', border: '#BAE6FD' },
+  'outros':       { bg: '#F9FAFB', color: '#4B5563', border: '#E5E7EB' },
+}
+
+function CatBadge({ cat }) {
+  const c = CAT_COLORS[cat] || CAT_COLORS['outros']
+  return (
+    <span style={{
+      background: c.bg, color: c.color, border: `1px solid ${c.border}`,
+      borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 600,
+      letterSpacing: '.02em', display: 'inline-block', whiteSpace: 'nowrap',
+    }}>{cat}</span>
+  )
+}
 function Badge({ s }) {
   const m = { pago: ['g','Pago'], recebido: ['g','Recebido'], pendente: ['a','Pendente'], confirmado: ['b','Confirmado'], Done: ['g','Done'], 'In progress': ['a','Em curso'] }
   const [cls, lbl] = m[s] || ['a', s]
@@ -368,14 +390,23 @@ function VanessaPage({ data, mes, reload }) {
       {tab === 'desp' && (
         <>
           <div className="filter-row">
-            {cats.map(c => (
-              <button key={c} className={`fpill ${catFiltro === c ? 'active' : ''}`} onClick={() => setCatFiltro(c)}>
-                {c === 'todas' ? 'Todas' : c}
-              </button>
-            ))}
+            {cats.map(c => {
+              const col = CAT_COLORS[c] || CAT_COLORS['outros']
+              const isActive = catFiltro === c
+              return (
+                <button
+                  key={c}
+                  className={`fpill ${isActive ? 'active' : ''}`}
+                  onClick={() => setCatFiltro(c)}
+                  style={isActive ? {} : { background: col.bg, borderColor: col.border, color: col.color }}
+                >
+                  {c === 'todas' ? 'Todas' : c}
+                </button>
+              )
+            })}
           </div>
           <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal('desp')} />
-          <Tbl cols={[{ k: 'descricao', l: 'Descrição', n: true }, { k: 'categoria', l: 'Categoria' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={despFiltradas} />
+          <Tbl cols={[{ k: 'descricao', l: 'Descrição', n: true }, { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} /> }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={despFiltradas} />
         </>
       )}
       {tab === 'rend' && (
