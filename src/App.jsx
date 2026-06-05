@@ -602,13 +602,14 @@ function MiltonPage({ data, mes, reload }) {
         { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? eur(r.iva) : '—', edit: 'number' },
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['Done','In progress'] },
       ]} rows={concMes} /></>}
-      {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} /><Tbl table="milton_despesas" onSave={reload} cols={[
+      {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal('desp')} /><Tbl table="milton_despesas" onSave={reload} cols={[
         { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['habitação','seguros','saúde','financeiro'] },
         { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
         { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
       ]} rows={desp} /></>}
       {modal === 'conc' && <Modal title="Novo concerto — Milton" ac="var(--violet2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'descricao', l: 'Concerto', t: 'text' }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'nif', l: 'NIF', t: 'text' }, { k: 'localidade', l: 'Localidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'iva', l: 'IVA (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['Done', 'In progress'] }]} onClose={() => setModal(null)} onSave={saveConc} />}
+      {modal === 'desp' && <Modal title="Nova despesa — Milton" ac="var(--violet2)" fields={[{ k: 'categoria', l: 'Categoria', t: 'sel', o: ['habitação','seguros','saúde','financeiro'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('milton_despesas', { mes, categoria: f.categoria || 'outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}}
     </>
   )
 }
