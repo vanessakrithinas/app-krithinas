@@ -443,7 +443,7 @@ function VanessaPage({ data, mes, reload }) {
           ]} rows={free} />
         </>
       )}
-      {modal === 'desp' && <Modal title="Nova despesa — Vanessa" ac="var(--gold2)" fields={[{ k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['home', 'filhos', 'alimentacao', 'transporte', 'saude', 'entretenimento', 'pessoal', 'financeiro'] }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(null)} onSave={saves.desp} />}
+      {modal === 'desp' && <Modal title="Nova despesa — Vanessa" ac="var(--gold2)" fields={[{ k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['casa', 'filhos', 'alimentação', 'transporte', 'saúde', 'entretenimento', 'pessoal', 'financeiro', 'crédito'] }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(null)} onSave={saves.desp} />}
       {modal === 'free' && <ModalFreelance onClose={() => setModal(null)} onSave={saves.free} />}
     </>
   )
@@ -490,7 +490,7 @@ function MaezonaPage({ data, mes, reload }) {
           <Tbl cols={[{ k: 'tipo', l: 'Tipo', n: true }, { k: 'entidade', l: 'Entidade' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rend} />
         </>
       )}
-      {modal && <Modal title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['condominio', 'seguros', 'energia', 'agua', 'garagem', 'comunicacoes', 'saude', 'cuidadoras', 'alimentacao', 'outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
+      {modal && <Modal title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['condomínio', 'seguros', 'energia', 'água', 'garagem', 'comunicações', 'saúde', 'cuidadoras', 'alimentação', 'outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
     </>
   )
 }
