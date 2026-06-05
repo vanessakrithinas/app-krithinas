@@ -370,31 +370,36 @@ function VillaPage({ data, mes, reload }) {
 }
 
 function CopaPage({ data, mes, reload }) {
-  const [tab, setTab] = useState('res')
+  const [tab, setTab] = useState('desp')
   const [modal, setModal] = useState(null)
-  const rec = data.copa_receitas
-  const desp = data.copa_despesas
+  const recMes = data.copa_receitas.filter(x => x.mes === mes)
+  const despMes = data.copa_despesas.filter(x => x.mes === mes)
+  const recAnо = data.copa_receitas
+  const despAnо = data.copa_despesas
   const tr = data.copa_transferencias
-  const tR = sum(rec, 'valor_brl'), tD = sum(desp, 'valor_brl')
+  const tRmes = sum(recMes, 'valor_brl')
+  const tDmes = sum(despMes, 'valor_brl')
+  const tRanо = sum(recAnо, 'valor_brl')
+  const tDanо = sum(despAnо, 'valor_brl')
 
-  const saveRec = async f => { await db.insert('copa_receitas', { mes: f.mes, descricao: f.descricao || 'Aluguel AP 812', canal: f.canal || 'RioHost', valor_brl: +f.valor_brl || 0, taxa: +f.taxa || 0.18, estado: f.estado || 'recebido' }); reload(); setModal(null) }
+  const saveRec = async f => { await db.insert('copa_receitas', { mes, descricao: f.descricao || 'Aluguel AP 812', canal: f.canal || 'RioHost', valor_brl: +f.valor_brl || 0, taxa: +f.taxa || 0.18, estado: f.estado || 'recebido' }); reload(); setModal(null) }
   const saveTr = async f => { await db.insert('copa_transferencias', { data: f.data, valor_brl: +f.valor_brl || 0, valor_eur: +f.valor_eur || 0, notas: f.notas }); reload(); setModal(null) }
 
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Receitas 2026" value={brl(tR)} sub={`${rec.length} meses`} ac="var(--blue2)" />
-        <StatCard label="Despesas 2026" value={brl(tD)} ac="var(--red2)" />
-        <StatCard label="Saldo BRL" value={brl(tR - tD)} ac={tR - tD >= 0 ? 'var(--green2)' : 'var(--red2)'} />
+        <StatCard label={`Receita ${mesL(mes)}`} value={brl(tRmes)} sub={recMes.length ? recMes[0].canal : '—'} ac="var(--blue2)" />
+        <StatCard label={`Despesas ${mesL(mes)}`} value={brl(tDmes)} ac="var(--red2)" />
+        <StatCard label={`Saldo ${mesL(mes)}`} value={brl(tRmes - tDmes)} ac={tRmes - tDmes >= 0 ? 'var(--green2)' : 'var(--red2)'} />
         <StatCard label="Transferido PT" value={eur(sum(tr, 'valor_eur'))} sub={`${tr.length} transf.`} ac="var(--blue2)" />
       </div>
       <div className="info-strip blue"><i className="ti ti-currency-real" /> Valores em BRL · Taxa referência: 1 BRL ≈ 0,18 EUR · Câmbio real por transferência</div>
-      <Tabs items={[{ k: 'res', l: 'Resumo' }, { k: 'rec', l: 'Receitas' }, { k: 'desp', l: 'Despesas' }, { k: 'tr', l: 'Transf. PT' }]} active={tab} onChange={setTab} />
-      {tab === 'res' && <><SecHead label="Resultado por mês 2026" /><Tbl cols={[{ k: 'mes', l: 'Mês', fn: r => mesL(r.mes), n: true }, { k: 'rec', l: 'Aluguel BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'desp', l: 'Despesas BRL', r: true, fn: r => brl(sum(desp.filter(d => d.mes === r.mes), 'valor_brl')) }, { k: 'saldo', l: 'Saldo', r: true, fn: r => { const s = r.valor_brl - sum(desp.filter(d => d.mes === r.mes), 'valor_brl'); return <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span> } }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rec} /></>}
-      {tab === 'rec' && <><SecHead label="Receitas — AP 812" onAdd={() => setModal('rec')} /><Tbl cols={[{ k: 'mes', l: 'Mês', fn: r => mesL(r.mes), n: true }, { k: 'canal', l: 'Canal' }, { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'eur', l: '≈ EUR', r: true, fn: r => eur(r.valor_brl * (r.taxa || 0.18)) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rec} /></>}
-      {tab === 'desp' && <><SecHead label="Despesas Copa Rio" /><Tbl cols={[{ k: 'mes', l: 'Mês', fn: r => mesL(r.mes) }, { k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
-      {tab === 'tr' && <><SecHead label="Transferências BRL → EUR" onAdd={() => setModal('tr')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'notas', l: 'Referência', n: true }, { k: 'valor_brl', l: 'Enviado BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'valor_eur', l: 'Recebido EUR', r: true, fn: r => eur(r.valor_eur) }, { k: 'taxa', l: 'Taxa real', r: true, fn: r => (r.valor_eur / r.valor_brl).toFixed(4) }]} rows={tr} /></>}
-      {modal === 'rec' && <Modal title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'mes', l: 'Mês', t: 'text', p: '2026-01' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost', 'Booking', 'Airbnb', 'Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'number' }, { k: 'taxa', l: 'Taxa câmbio', t: 'number', p: '0.18' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['recebido', 'pendente'] }]} onClose={() => setModal(null)} onSave={saveRec} />}
+      <Tabs items={[{ k: 'desp', l: 'Despesas' }, { k: 'rec', l: 'Receitas' }, { k: 'res', l: 'Resumo Ano' }, { k: 'tr', l: 'Transf. PT' }]} active={tab} onChange={setTab} />
+      {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={despMes} /></>}
+      {tab === 'rec' && <><SecHead label={`Receitas — ${mesL(mes)}`} onAdd={() => setModal('rec')} /><Tbl cols={[{ k: 'descricao', l: 'Descrição', n: true }, { k: 'canal', l: 'Canal' }, { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'eur', l: '≈ EUR', r: true, fn: r => eur(r.valor_brl * (r.taxa || 0.18)) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={recMes} /></>}
+      {tab === 'res' && <><SecHead label="Resumo por mês 2026" /><Tbl cols={[{ k: 'mes', l: 'Mês', fn: r => mesL(r.mes), n: true }, { k: 'rec', l: 'Aluguel BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'desp', l: 'Despesas BRL', r: true, fn: r => brl(sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl')) }, { k: 'saldo', l: 'Saldo', r: true, fn: r => { const s = r.valor_brl - sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl'); return <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span> } }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={recAnо} /></>}
+      {tab === 'tr' && <><SecHead label="Transferências BRL → EUR" onAdd={() => setModal('tr')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'notas', l: 'Referência', n: true }, { k: 'valor_brl', l: 'Enviado BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'valor_eur', l: 'Recebido EUR', r: true, fn: r => eur(r.valor_eur) }, { k: 'taxa', l: 'Taxa real', r: true, fn: r => r.valor_brl ? (r.valor_eur / r.valor_brl).toFixed(4) : '—' }]} rows={tr} /></>}
+      {modal === 'rec' && <Modal title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost', 'Booking', 'Airbnb', 'Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'number' }, { k: 'taxa', l: 'Taxa câmbio', t: 'number', p: '0.18' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['recebido', 'pendente'] }]} onClose={() => setModal(null)} onSave={saveRec} />}
       {modal === 'tr' && <Modal title="Nova transferência BRL → EUR" ac="var(--blue2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'valor_brl', l: 'Valor enviado (BRL)', t: 'number' }, { k: 'valor_eur', l: 'Valor recebido (EUR)', t: 'number' }, { k: 'notas', l: 'Referência', t: 'text', p: 'Ex: Jan-Mar 2026' }]} onClose={() => setModal(null)} onSave={saveTr} />}
     </>
   )
