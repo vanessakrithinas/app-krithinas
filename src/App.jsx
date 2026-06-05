@@ -342,24 +342,27 @@ function MiltonPage({ data, mes, reload }) {
 function VillaPage({ data, mes, reload }) {
   const [tab, setTab] = useState('res')
   const [modal, setModal] = useState(null)
-  const res = data.villa_reservas
+  const resAnо = data.villa_reservas
+  const resMes = data.villa_reservas.filter(r => r.entrada && r.entrada.startsWith(mes))
   const desp = data.villa_despesas.filter(x => x.mes === mes)
-  const tr = sum(res.filter(r => r.tipo === 'Inquilino'), 'valor')
+  const tr = sum(resMes.filter(r => r.tipo === 'Inquilino'), 'valor')
   const td = sum(desp, 'valor')
+  const noitesAnо = resAnо.filter(r => r.tipo === 'Inquilino').reduce((s, r) => s + noites(r), 0)
 
   const saveRes = async f => { await db.insert('villa_reservas', { entrada: f.entrada, saida: f.saida, tipo: f.tipo || 'Inquilino', inquilino: f.inquilino, canal: f.canal || 'Directo', valor: +f.valor || 0, estado: f.estado || 'confirmado' }); reload(); setModal(null) }
 
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Receita reservas" value={eur(tr)} sub={`${res.length} reservas 2026`} ac="var(--green2)" />
+        <StatCard label={`Receita ${mesL(mes)}`} value={eur(tr)} sub={`${resMes.length} reservas`} ac="var(--green2)" />
         <StatCard label={`Encargos ${mesL(mes)}`} value={eur(td)} ac="var(--red2)" />
         <StatCard label="Resultado" value={<Chip v={tr - td} />} sub={mesL(mes)} ac="var(--green2)" />
-        <StatCard label="Noites alugadas" value={`${res.filter(r => r.tipo === 'Inquilino').reduce((s, r) => s + noites(r), 0)} noites`} sub="2026" ac="var(--green2)" />
+        <StatCard label="Noites alugadas" value={`${noitesAnо} noites`} sub="2026" ac="var(--green2)" />
       </div>
       <div className="info-strip teal"><i className="ti ti-info-circle" /> Agosto: 650€/sem · 85€/dia &nbsp;|&nbsp; Outros meses: 600€/sem · 80€/dia</div>
-      <Tabs items={[{ k: 'res', l: 'Calendário & Reservas' }, { k: 'desp', l: 'Encargos Fixos' }]} active={tab} onChange={setTab} />
-      {tab === 'res' && <><SecHead label="Reservas 2026" onAdd={() => setModal('res')} /><Tbl cols={[{ k: 'entrada', l: 'Check-in' }, { k: 'saida', l: 'Check-out' }, { k: 'noites', l: 'Noites', fn: r => noites(r) }, { k: 'tipo', l: 'Tipo' }, { k: 'inquilino', l: 'Hóspede', n: true }, { k: 'canal', l: 'Canal' }, { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={res} /></>}
+      <Tabs items={[{ k: 'res', l: 'Calendário & Reservas' }, { k: 'all', l: 'Todas as Reservas' }, { k: 'desp', l: 'Encargos Fixos' }]} active={tab} onChange={setTab} />
+      {tab === 'res' && <><SecHead label={`Reservas — ${mesL(mes)}`} onAdd={() => setModal('res')} /><Tbl cols={[{ k: 'entrada', l: 'Check-in' }, { k: 'saida', l: 'Check-out' }, { k: 'noites', l: 'Noites', fn: r => noites(r) }, { k: 'tipo', l: 'Tipo' }, { k: 'inquilino', l: 'Hóspede', n: true }, { k: 'canal', l: 'Canal' }, { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={resMes} /></>}
+      {tab === 'all' && <><SecHead label="Todas as reservas 2026" onAdd={() => setModal('res')} /><Tbl cols={[{ k: 'entrada', l: 'Check-in' }, { k: 'saida', l: 'Check-out' }, { k: 'noites', l: 'Noites', fn: r => noites(r) }, { k: 'tipo', l: 'Tipo' }, { k: 'inquilino', l: 'Hóspede', n: true }, { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={resAnо} /></>}
       {tab === 'desp' && <><SecHead label={`Encargos — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
       {modal === 'res' && <Modal title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'entrada', l: 'Data entrada', t: 'date' }, { k: 'saida', l: 'Data saída', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Inquilino', 'Amigos', 'Família'] }, { k: 'inquilino', l: 'Nome / Quem', t: 'text' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo', 'Airbnb', 'Booking', 'Outro'] }, { k: 'valor', l: 'Receita (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['confirmado', 'pendente'] }]} onClose={() => setModal(null)} onSave={saveRes} />}
     </>
