@@ -28,6 +28,8 @@ const TITLES = {
 
 // ── categoria cores ────────────────────────────────────────────────────────
 const CAT_COLORS = {
+  'animais':       { bg: '#FFF7ED', color: '#92400E', border: '#FDE68A' },
+  'empregada':     { bg: '#FDF4FF', color: '#7E22CE', border: '#E9D5FF' },
   'água':          { bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' },
   'alimentação':   { bg: '#FFF3E0', color: '#B45309', border: '#FDE68A' },
   'casa':          { bg: '#EFF6FF', color: '#1E40AF', border: '#BFDBFE' },
@@ -550,7 +552,7 @@ function MaezonaPage({ data, mes, reload }) {
           <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal(true)} />
           <Tbl table="maezona_despesas" onSave={reload} cols={[
             { k: 'prop', l: 'Prop.', edit: 'select', options: ['Queluz','Vilamoura','Diversos'] },
-            { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['condomínio','seguros','energia','água','garagem','comunicações','saúde','cuidadoras','alimentação','outros'] },
+            { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['condomínio','seguros','energia','água','garagem','comunicações','saúde','cuidadoras','alimentação','animais','empregada','outros'] },
             { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
             { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
             { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
@@ -568,7 +570,7 @@ function MaezonaPage({ data, mes, reload }) {
           ]} rows={rend} />
         </>
       )}
-      {modal === true && <Modal title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['condomínio', 'seguros', 'energia', 'água', 'garagem', 'comunicações', 'saúde', 'cuidadoras', 'alimentação', 'outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
+      {modal === true && <Modal title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['condomínio', 'seguros', 'energia', 'água', 'garagem', 'comunicações', 'saúde', 'cuidadoras', 'alimentação', 'animais', 'empregada', 'outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
       {modal === 'rend' && <Modal title="Novo rendimento — Mãezona" ac="var(--teal2)" fields={[{ k: 'tipo', l: 'Tipo', t: 'sel', o: ['pensão','transferência','IRS','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['recebido','pendente'] }]} onClose={() => setModal(false)} onSave={async f => { await db.insert('maezona_rendimentos', { mes, tipo: f.tipo, entidade: f.entidade, valor: +f.valor || 0, estado: f.estado || 'recebido' }); reload(); setModal(false) }} />}
     </>
   )
