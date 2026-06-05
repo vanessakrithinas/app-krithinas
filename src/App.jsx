@@ -93,8 +93,26 @@ function SecHead({ label, onAdd }) {
   )
 }
 
-function Tbl({ cols, rows }) {
+function Tbl({ cols, rows, table, onSave }) {
+  const [editing, setEditing] = useState(null) // { rowId, colK }
+  const [val, setVal] = useState('')
+
+  const startEdit = (r, c) => {
+    if (!c.edit || !table) return
+    setEditing({ rowId: r.id, colK: c.k })
+    setVal(r[c.k] ?? '')
+  }
+
+  const commitEdit = async (r, c) => {
+    if (!editing) return
+    setEditing(null)
+    if (String(val) === String(r[c.k] ?? '')) return
+    await db.update(table, r.id, { [c.k]: c.edit === 'number' ? +val : val })
+    onSave && onSave()
+  }
+
   if (!rows.length) return <div className="empty">Sem registos ainda</div>
+
   return (
     <div className="table-wrap">
       <table>
@@ -102,11 +120,50 @@ function Tbl({ cols, rows }) {
         <tbody>
           {rows.map((r, i) => (
             <tr key={r.id || i}>
-              {cols.map(c => (
-                <td key={c.k} className={c.r ? 'r val' : c.n ? 'name' : ''}>
-                  {c.fn ? c.fn(r) : r[c.k] || '—'}
-                </td>
-              ))}
+              {cols.map(c => {
+                const isEditing = editing && editing.rowId === r.id && editing.colK === c.k
+                const editable = !!c.edit && !!table
+
+                if (isEditing) {
+                  return (
+                    <td key={c.k} className={c.r ? 'r val' : c.n ? 'name' : ''} style={{ padding: 0 }}>
+                      {c.edit === 'select'
+                        ? <select
+                            autoFocus
+                            value={val}
+                            onChange={e => setVal(e.target.value)}
+                            onBlur={() => commitEdit(r, c)}
+                            style={{ width: '100%', border: 'none', background: 'var(--bg2)', padding: '10px 13px', fontSize: 12.5, fontFamily: 'DM Sans, sans-serif', color: 'var(--text)', outline: '2px solid var(--gold2)', borderRadius: 0 }}
+                          >
+                            {c.options.map(o => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        : <input
+                            autoFocus
+                            type={c.edit === 'number' ? 'number' : c.edit === 'date' ? 'date' : 'text'}
+                            value={val}
+                            onChange={e => setVal(e.target.value)}
+                            onBlur={() => commitEdit(r, c)}
+                            onKeyDown={e => { if (e.key === 'Enter') commitEdit(r, c); if (e.key === 'Escape') setEditing(null) }}
+                            style={{ width: '100%', border: 'none', background: 'var(--bg2)', padding: '10px 13px', fontSize: 12.5, fontFamily: 'DM Mono, monospace', color: 'var(--text)', outline: '2px solid var(--gold2)', borderRadius: 0 }}
+                          />
+                      }
+                    </td>
+                  )
+                }
+
+                return (
+                  <td
+                    key={c.k}
+                    className={c.r ? 'r val' : c.n ? 'name' : ''}
+                    onClick={() => startEdit(r, c)}
+                    style={editable ? { cursor: 'text', transition: 'background .1s' } : {}}
+                    onMouseEnter={e => { if (editable) e.currentTarget.style.background = 'var(--bg2)' }}
+                    onMouseLeave={e => { if (editable) e.currentTarget.style.background = '' }}
+                  >
+                    {c.fn ? c.fn(r) : r[c.k] || '—'}
+                  </td>
+                )
+              })}
             </tr>
           ))}
         </tbody>
@@ -420,26 +477,36 @@ function VanessaPage({ data, mes, reload }) {
             })}
           </div>
           <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal('desp')} />
-          <Tbl cols={[{ k: 'descricao', l: 'Descrição', n: true }, { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} /> }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={despFiltradas} />
+          <Tbl table="vanessa_despesas" onSave={reload} cols={[
+            { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
+            { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['casa','filhos','alimentação','transporte','saúde','entretenimento','pessoal','financeiro','crédito'] },
+            { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
+            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
+          ]} rows={despFiltradas} />
         </>
       )}
       {tab === 'rend' && (
         <>
           <SecHead label={`Rendimentos — ${mesL(mes)}`} />
-          <Tbl cols={[{ k: 'tipo', l: 'Tipo', n: true }, { k: 'entidade', l: 'Entidade', fn: r => r.entidade || '—' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rend} />
+          <Tbl table="vanessa_rendimentos" onSave={reload} cols={[
+            { k: 'tipo', l: 'Tipo', n: true, edit: 'text' },
+            { k: 'entidade', l: 'Entidade', fn: r => r.entidade || '—', edit: 'text' },
+            { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
+            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['recebido','pendente'] },
+          ]} rows={rend} />
         </>
       )}
       {tab === 'free' && (
         <>
           <SecHead label={`Freelance — ${mesL(mes)}`} onAdd={() => setModal('free')} />
-          <Tbl cols={[
-            { k: 'data', l: 'Data' },
-            { k: 'cliente', l: 'Cliente', n: true },
-            { k: 'descricao', l: 'Descrição' },
-            { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) },
-            { k: 'retencao', l: 'Ret.', r: true, fn: r => r.retencao ? `${r.retencao}% · ${eur(r.valor * r.retencao / 100)}` : '—' },
-            { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? `23% · ${eur(r.iva)}` : '—' },
-            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> },
+          <Tbl table="vanessa_freelancers" onSave={reload} cols={[
+            { k: 'data', l: 'Data', edit: 'date' },
+            { k: 'cliente', l: 'Cliente', n: true, edit: 'text' },
+            { k: 'descricao', l: 'Descrição', edit: 'text' },
+            { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
+            { k: 'retencao', l: 'Ret.', r: true, fn: r => r.retencao ? `${r.retencao}% · ${eur(r.valor * r.retencao / 100)}` : '—', edit: 'number' },
+            { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? `23% · ${eur(r.iva)}` : '—', edit: 'number' },
+            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
           ]} rows={free} />
         </>
       )}
@@ -481,13 +548,24 @@ function MaezonaPage({ data, mes, reload }) {
             ))}
           </div>
           <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal(true)} />
-          <Tbl cols={[{ k: 'prop', l: 'Prop.' }, { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} /> }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rows} />
+          <Tbl table="maezona_despesas" onSave={reload} cols={[
+            { k: 'prop', l: 'Prop.', edit: 'select', options: ['Queluz','Vilamoura','Diversos'] },
+            { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['condomínio','seguros','energia','água','garagem','comunicações','saúde','cuidadoras','alimentação','outros'] },
+            { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
+            { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
+            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
+          ]} rows={rows} />
         </>
       )}
       {tab === 'rend' && (
         <>
           <SecHead label={`Rendimentos — ${mesL(mes)}`} />
-          <Tbl cols={[{ k: 'tipo', l: 'Tipo', n: true }, { k: 'entidade', l: 'Entidade' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rend} />
+          <Tbl table="maezona_rendimentos" onSave={reload} cols={[
+            { k: 'tipo', l: 'Tipo', n: true, edit: 'text' },
+            { k: 'entidade', l: 'Entidade', edit: 'text' },
+            { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
+            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['recebido','pendente'] },
+          ]} rows={rend} />
         </>
       )}
       {modal && <Modal title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['condomínio', 'seguros', 'energia', 'água', 'garagem', 'comunicações', 'saúde', 'cuidadoras', 'alimentação', 'outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
@@ -513,8 +591,22 @@ function MiltonPage({ data, mes, reload }) {
         <StatCard label="Total ano" value={eur(sum(concAnо, 'valor'))} sub={`${concAnо.length} actuações`} ac="var(--violet2)" />
       </div>
       <Tabs items={[{ k: 'conc', l: 'Concertos & Recibos' }, { k: 'desp', l: 'Despesas Casa Belas' }]} active={tab} onChange={setTab} />
-      {tab === 'conc' && <><SecHead label={`Recibos verdes — ${mesL(mes)}`} onAdd={() => setModal('conc')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'descricao', l: 'Concerto', n: true }, { k: 'entidade', l: 'Entidade' }, { k: 'localidade', l: 'Local' }, { k: 'nif', l: 'NIF' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? eur(r.iva) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={concMes} /></>}
-      {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} /> }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
+      {tab === 'conc' && <><SecHead label={`Recibos verdes — ${mesL(mes)}`} onAdd={() => setModal('conc')} /><Tbl table="milton_concertos" onSave={reload} cols={[
+        { k: 'data', l: 'Data', edit: 'date' },
+        { k: 'descricao', l: 'Concerto', n: true, edit: 'text' },
+        { k: 'entidade', l: 'Entidade', edit: 'text' },
+        { k: 'localidade', l: 'Local', edit: 'text' },
+        { k: 'nif', l: 'NIF', edit: 'text' },
+        { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
+        { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? eur(r.iva) : '—', edit: 'number' },
+        { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['Done','In progress'] },
+      ]} rows={concMes} /></>}
+      {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} /><Tbl table="milton_despesas" onSave={reload} cols={[
+        { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['habitação','seguros','saúde','financeiro'] },
+        { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
+        { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
+        { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
+      ]} rows={desp} /></>}
       {modal === 'conc' && <Modal title="Novo concerto — Milton" ac="var(--violet2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'descricao', l: 'Concerto', t: 'text' }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'nif', l: 'NIF', t: 'text' }, { k: 'localidade', l: 'Localidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'iva', l: 'IVA (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['Done', 'In progress'] }]} onClose={() => setModal(null)} onSave={saveConc} />}
     </>
   )
@@ -542,9 +634,31 @@ function VillaPage({ data, mes, reload }) {
       </div>
       <div className="info-strip teal"><i className="ti ti-info-circle" /> Agosto: 650€/sem · 85€/dia &nbsp;|&nbsp; Outros meses: 600€/sem · 80€/dia</div>
       <Tabs items={[{ k: 'res', l: 'Calendário & Reservas' }, { k: 'all', l: 'Todas as Reservas' }, { k: 'desp', l: 'Encargos Fixos' }]} active={tab} onChange={setTab} />
-      {tab === 'res' && <><SecHead label={`Reservas — ${mesL(mes)}`} onAdd={() => setModal('res')} /><Tbl cols={[{ k: 'entrada', l: 'Check-in' }, { k: 'saida', l: 'Check-out' }, { k: 'noites', l: 'Noites', fn: r => noites(r) }, { k: 'tipo', l: 'Tipo' }, { k: 'inquilino', l: 'Hóspede', n: true }, { k: 'canal', l: 'Canal' }, { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={resMes} /></>}
-      {tab === 'all' && <><SecHead label="Todas as reservas 2026" onAdd={() => setModal('res')} /><Tbl cols={[{ k: 'entrada', l: 'Check-in' }, { k: 'saida', l: 'Check-out' }, { k: 'noites', l: 'Noites', fn: r => noites(r) }, { k: 'tipo', l: 'Tipo' }, { k: 'inquilino', l: 'Hóspede', n: true }, { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={resAnо} /></>}
-      {tab === 'desp' && <><SecHead label={`Encargos — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} /> }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
+      {tab === 'res' && <><SecHead label={`Reservas — ${mesL(mes)}`} onAdd={() => setModal('res')} /><Tbl table="villa_reservas" onSave={reload} cols={[
+        { k: 'entrada', l: 'Check-in', edit: 'date' },
+        { k: 'saida', l: 'Check-out', edit: 'date' },
+        { k: 'noites', l: 'Noites', fn: r => noites(r) },
+        { k: 'tipo', l: 'Tipo', edit: 'select', options: ['Inquilino','Amigos','Família'] },
+        { k: 'inquilino', l: 'Hóspede', n: true, edit: 'text' },
+        { k: 'canal', l: 'Canal', edit: 'select', options: ['Directo','Airbnb','Booking','Outro'] },
+        { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—', edit: 'number' },
+        { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['confirmado','pendente'] },
+      ]} rows={resMes} /></>}
+      {tab === 'all' && <><SecHead label="Todas as reservas 2026" onAdd={() => setModal('res')} /><Tbl table="villa_reservas" onSave={reload} cols={[
+        { k: 'entrada', l: 'Check-in', edit: 'date' },
+        { k: 'saida', l: 'Check-out', edit: 'date' },
+        { k: 'noites', l: 'Noites', fn: r => noites(r) },
+        { k: 'tipo', l: 'Tipo', edit: 'select', options: ['Inquilino','Amigos','Família'] },
+        { k: 'inquilino', l: 'Hóspede', n: true, edit: 'text' },
+        { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—', edit: 'number' },
+        { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['confirmado','pendente'] },
+      ]} rows={resAnо} /></>}
+      {tab === 'desp' && <><SecHead label={`Encargos — ${mesL(mes)}`} /><Tbl table="villa_despesas" onSave={reload} cols={[
+        { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['condomínio','seguros','energia','água','outros'] },
+        { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
+        { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
+        { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
+      ]} rows={desp} /></>}
       {modal === 'res' && <Modal title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'entrada', l: 'Data entrada', t: 'date' }, { k: 'saida', l: 'Data saída', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Inquilino', 'Amigos', 'Família'] }, { k: 'inquilino', l: 'Nome / Quem', t: 'text' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo', 'Airbnb', 'Booking', 'Outro'] }, { k: 'valor', l: 'Receita (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['confirmado', 'pendente'] }]} onClose={() => setModal(null)} onSave={saveRes} />}
     </>
   )
@@ -576,8 +690,19 @@ function CopaPage({ data, mes, reload }) {
       </div>
       <div className="info-strip blue"><i className="ti ti-currency-real" /> Valores em BRL · Taxa referência: 1 BRL ≈ 0,18 EUR · Câmbio real por transferência</div>
       <Tabs items={[{ k: 'desp', l: 'Despesas' }, { k: 'rec', l: 'Receitas' }, { k: 'res', l: 'Resumo Ano' }, { k: 'tr', l: 'Transf. PT' }]} active={tab} onChange={setTab} />
-      {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} /> }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={despMes} /></>}
-      {tab === 'rec' && <><SecHead label={`Receitas — ${mesL(mes)}`} onAdd={() => setModal('rec')} /><Tbl cols={[{ k: 'descricao', l: 'Descrição', n: true }, { k: 'canal', l: 'Canal' }, { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'eur', l: '≈ EUR', r: true, fn: r => eur(r.valor_brl * (r.taxa || 0.18)) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={recMes} /></>}
+      {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} /><Tbl table="copa_despesas" onSave={reload} cols={[
+        { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] },
+        { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
+        { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl), edit: 'number' },
+        { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
+      ]} rows={despMes} /></>}
+      {tab === 'rec' && <><SecHead label={`Receitas — ${mesL(mes)}`} onAdd={() => setModal('rec')} /><Tbl table="copa_receitas" onSave={reload} cols={[
+        { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
+        { k: 'canal', l: 'Canal', edit: 'select', options: ['RioHost','Booking','Airbnb','Directo'] },
+        { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl), edit: 'number' },
+        { k: 'eur', l: '≈ EUR', r: true, fn: r => eur(r.valor_brl * (r.taxa || 0.18)) },
+        { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['recebido','pendente'] },
+      ]} rows={recMes} /></>}
       {tab === 'res' && <><SecHead label="Resumo por mês 2026" /><Tbl cols={[{ k: 'mes', l: 'Mês', fn: r => mesL(r.mes), n: true }, { k: 'rec', l: 'Aluguel BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'desp', l: 'Despesas BRL', r: true, fn: r => brl(sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl')) }, { k: 'saldo', l: 'Saldo', r: true, fn: r => { const s = r.valor_brl - sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl'); return <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span> } }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={recAnо} /></>}
       {tab === 'tr' && <><SecHead label="Transferências BRL → EUR" onAdd={() => setModal('tr')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'notas', l: 'Referência', n: true }, { k: 'valor_brl', l: 'Enviado BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'valor_eur', l: 'Recebido EUR', r: true, fn: r => eur(r.valor_eur) }, { k: 'taxa', l: 'Taxa real', r: true, fn: r => r.valor_brl ? (r.valor_eur / r.valor_brl).toFixed(4) : '—' }]} rows={tr} /></>}
       {modal === 'rec' && <Modal title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost', 'Booking', 'Airbnb', 'Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'number' }, { k: 'taxa', l: 'Taxa câmbio', t: 'number', p: '0.18' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['recebido', 'pendente'] }]} onClose={() => setModal(null)} onSave={saveRec} />}
