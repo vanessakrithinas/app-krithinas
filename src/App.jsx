@@ -721,11 +721,30 @@ function CopaPage({ data, mes, reload }) {
 const TABLES = ['vanessa_rendimentos','vanessa_despesas','vanessa_freelancers','maezona_despesas','maezona_rendimentos','milton_despesas','milton_concertos','villa_reservas','villa_despesas','copa_receitas','copa_despesas','copa_transferencias']
 
 export default function App() {
-  const [page, setPage] = useState('dash')
-  const [mes, setMes] = useState('2026-01')
+  const getInitialPage = () => {
+    const hash = window.location.hash.replace('#', '')
+    const [p] = hash.split('/')
+    return NAV.find(x => x.k === p) ? p : 'dash'
+  }
+  const getInitialMes = () => {
+    const hash = window.location.hash.replace('#', '')
+    const [, m] = hash.split('/')
+    return MESES_DISPONIVEIS.includes(m) ? m : '2026-01'
+  }
+
+  const [page, setPage] = useState(getInitialPage)
+  const [mes, setMes] = useState(getInitialMes)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const navigate = (p, m) => {
+    const newMes = m || mes
+    const newPage = p || page
+    window.location.hash = `${newPage}/${newMes}`
+    setPage(newPage)
+    if (m) setMes(m)
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -774,7 +793,7 @@ export default function App() {
               key={x.k}
               className={`nav-item ${page === x.k ? 'active' : ''}`}
               style={{ '--ac': x.ac }}
-              onClick={() => { setPage(x.k); setSidebarOpen(false) }}
+              onClick={() => { navigate(x.k); setSidebarOpen(false) }}
             >
               <div className="nav-avatar" style={{ background: x.bg, color: x.fg, border: `1.5px solid ${page === x.k ? x.fg + '66' : 'transparent'}` }}>{x.initials}</div>
               <div className="nav-label-wrap">
@@ -800,7 +819,7 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-right">
-            <MonthSelector mes={mes} onChange={setMes} />
+            <MonthSelector mes={mes} onChange={m => navigate(null, m)} />
           </div>
         </header>
 
