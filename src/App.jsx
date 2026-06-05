@@ -152,6 +152,129 @@ function Modal({ title, ac, fields, onClose, onSave }) {
   )
 }
 
+// ── modal freelance com cálculo automático ─────────────────────────────────
+function ModalFreelance({ onClose, onSave }) {
+  const [form, setForm] = useState({
+    data: '', cliente: '', descricao: '',
+    valor: '', retencao: 25, iva: 23, estado: 'pago',
+    temRetencao: true, temIva: true,
+  })
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const valorNum  = +form.valor || 0
+  const retPct    = form.temRetencao ? (+form.retencao || 0) : 0
+  const ivaPct    = form.temIva      ? (+form.iva      || 0) : 0
+  const retValor  = +(valorNum * retPct / 100).toFixed(2)
+  const ivaValor  = +(valorNum * ivaPct / 100).toFixed(2)
+  const totalDoc  = +(valorNum + ivaValor).toFixed(2)
+  const totalPago = +(totalDoc - retValor).toFixed(2)
+
+  const handleSave = () => {
+    onSave({
+      data: form.data,
+      cliente: form.cliente,
+      descricao: form.descricao,
+      valor: valorNum,
+      retencao: retPct,
+      iva: ivaValor,
+      estado: form.estado,
+    })
+  }
+
+  const rowStyle = { display: 'flex', gap: 8 }
+  const halfField = { flex: 1 }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box">
+        <div className="modal-hd">
+          <span className="modal-title">Novo recibo freelance</span>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+
+        <div style={rowStyle}>
+          <div className="field" style={halfField}>
+            <label>Data</label>
+            <input type="date" value={form.data} onChange={e => set('data', e.target.value)} />
+          </div>
+          <div className="field" style={halfField}>
+            <label>Estado</label>
+            <select value={form.estado} onChange={e => set('estado', e.target.value)}>
+              <option value="pago">Pago</option>
+              <option value="pendente">Pendente</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="field">
+          <label>Cliente</label>
+          <input type="text" value={form.cliente} onChange={e => set('cliente', e.target.value)} />
+        </div>
+
+        <div className="field">
+          <label>Descrição</label>
+          <input type="text" value={form.descricao} onChange={e => set('descricao', e.target.value)} />
+        </div>
+
+        <div className="field">
+          <label>Valor ilíquido (€)</label>
+          <input type="number" value={form.valor} onChange={e => set('valor', e.target.value)} placeholder="0.00" />
+        </div>
+
+        <div style={rowStyle}>
+          <div className="field" style={halfField}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" checked={form.temRetencao} onChange={e => set('temRetencao', e.target.checked)}
+                style={{ width: 'auto', margin: 0 }} />
+              Retenção IRS (%)
+            </label>
+            <input type="number" value={form.retencao} disabled={!form.temRetencao}
+              onChange={e => set('retencao', e.target.value)}
+              style={{ opacity: form.temRetencao ? 1 : 0.4 }} />
+          </div>
+          <div className="field" style={halfField}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" checked={form.temIva} onChange={e => set('temIva', e.target.checked)}
+                style={{ width: 'auto', margin: 0 }} />
+              IVA (%)
+            </label>
+            <input type="number" value={form.iva} disabled={!form.temIva}
+              onChange={e => set('iva', e.target.value)}
+              style={{ opacity: form.temIva ? 1 : 0.4 }} />
+          </div>
+        </div>
+
+        {/* resumo calculado */}
+        {valorNum > 0 && (
+          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 13px', marginBottom: 13, fontSize: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, color: 'var(--text2)' }}>
+              <span>Valor ilíquido</span><span style={{ fontFamily: 'DM Mono, monospace' }}>{eur(valorNum)}</span>
+            </div>
+            {form.temIva && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, color: 'var(--text2)' }}>
+              <span>IVA {ivaPct}%</span><span style={{ fontFamily: 'DM Mono, monospace' }}>+ {eur(ivaValor)}</span>
+            </div>}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, color: 'var(--text)', fontWeight: 600, borderTop: '1px solid var(--border)', paddingTop: 4 }}>
+              <span>Total do documento</span><span style={{ fontFamily: 'DM Mono, monospace' }}>{eur(totalDoc)}</span>
+            </div>
+            {form.temRetencao && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, color: 'var(--red2)' }}>
+              <span>Retenção IRS {retPct}%</span><span style={{ fontFamily: 'DM Mono, monospace' }}>− {eur(retValor)}</span>
+            </div>}
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--green)', fontWeight: 700, borderTop: '1px solid var(--border)', paddingTop: 4 }}>
+              <span>Total a receber</span><span style={{ fontFamily: 'DM Mono, monospace' }}>{eur(totalPago)}</span>
+            </div>
+          </div>
+        )}
+
+        <div className="modal-actions">
+          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
+          <button className="btn-save" style={{ background: 'var(--gold2)' }} onClick={handleSave}>Guardar</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // PAGES
 // ══════════════════════════════════════════════════════════════════════════
@@ -263,7 +386,7 @@ function VanessaPage({ data, mes, reload }) {
         </>
       )}
       {modal === 'desp' && <Modal title="Nova despesa — Vanessa" ac="var(--gold2)" fields={[{ k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['home', 'filhos', 'alimentacao', 'transporte', 'saude', 'entretenimento', 'pessoal', 'financeiro'] }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(null)} onSave={saves.desp} />}
-      {modal === 'free' && <Modal title="Novo recibo freelance" ac="var(--gold2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'cliente', l: 'Cliente', t: 'text' }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'retencao', l: 'Retenção (%)', t: 'number' }, { k: 'iva', l: 'IVA (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(null)} onSave={saves.free} />}
+      {modal === 'free' && <ModalFreelance onClose={() => setModal(null)} onSave={saves.free} />}
     </>
   )
 }
