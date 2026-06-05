@@ -339,8 +339,13 @@ function VanessaPage({ data, mes, reload }) {
 
   const desp = data.vanessa_despesas.filter(x => x.mes === mes)
   const rend = data.vanessa_rendimentos.filter(x => x.mes === mes)
-  const free = data.vanessa_freelancers
-  const td = sum(desp, 'valor'), tr = sum(rend, 'valor'), tf = sum(free, 'valor')
+  const free = data.vanessa_freelancers.filter(x => x.data && x.data.startsWith(mes))
+
+  const salario = sum(rend.filter(x => x.tipo === 'Salário' || x.entidade === 'Bauer' || x.tipo === 'salario'), 'valor')
+  const outrosRend = sum(rend.filter(x => x.tipo !== 'Salário' && x.entidade !== 'Bauer' && x.tipo !== 'salario'), 'valor')
+  const tf = sum(free, 'valor')
+  const td = sum(desp, 'valor')
+  const tr = sum(rend, 'valor')
 
   const cats = ['todas', ...Array.from(new Set(desp.map(x => x.categoria).filter(Boolean))).sort()]
   const despFiltradas = catFiltro === 'todas' ? desp : desp.filter(x => x.categoria === catFiltro)
@@ -353,10 +358,10 @@ function VanessaPage({ data, mes, reload }) {
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Rendimento total" value={eur(tr + tf)} sub="Salário + freelance" ac="var(--gold2)" />
+        <StatCard label="Salário Bauer" value={eur(salario)} sub={mesL(mes)} ac="var(--gold2)" />
+        <StatCard label={`Freelance ${mesL(mes)}`} value={eur(tf)} sub={`${free.length} recibo${free.length !== 1 ? 's' : ''}`} ac="var(--gold2)" />
         <StatCard label={`Despesas ${mesL(mes)}`} value={eur(td)} ac="var(--red2)" />
         <StatCard label="Saldo" value={<Chip v={tr + tf - td} />} sub={mesL(mes)} ac="var(--gold2)" />
-        <StatCard label="IVA freelance" value={eur(sum(free, 'iva'))} sub="A declarar" ac="var(--gold2)" />
       </div>
       <Tabs items={[{ k: 'desp', l: 'Despesas' }, { k: 'rend', l: 'Rendimentos' }, { k: 'free', l: 'Freelance' }]} active={tab} onChange={t => { setTab(t); setCatFiltro('todas') }} />
 
@@ -381,8 +386,16 @@ function VanessaPage({ data, mes, reload }) {
       )}
       {tab === 'free' && (
         <>
-          <SecHead label="Freelance 2026" onAdd={() => setModal('free')} />
-          <Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'cliente', l: 'Cliente', n: true }, { k: 'descricao', l: 'Descrição' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'retencao', l: 'Ret.', r: true, fn: r => r.retencao ? r.retencao + '%' : '—' }, { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? eur(r.iva) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={free} />
+          <SecHead label={`Freelance — ${mesL(mes)}`} onAdd={() => setModal('free')} />
+          <Tbl cols={[
+            { k: 'data', l: 'Data' },
+            { k: 'cliente', l: 'Cliente', n: true },
+            { k: 'descricao', l: 'Descrição' },
+            { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) },
+            { k: 'retencao', l: 'Ret.', r: true, fn: r => r.retencao ? `${r.retencao}% · ${eur(r.valor * r.retencao / 100)}` : '—' },
+            { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? `23% · ${eur(r.iva)}` : '—' },
+            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> },
+          ]} rows={free} />
         </>
       )}
       {modal === 'desp' && <Modal title="Nova despesa — Vanessa" ac="var(--gold2)" fields={[{ k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['home', 'filhos', 'alimentacao', 'transporte', 'saude', 'entretenimento', 'pessoal', 'financeiro'] }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(null)} onSave={saves.desp} />}
