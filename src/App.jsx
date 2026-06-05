@@ -269,32 +269,47 @@ function VanessaPage({ data, mes, reload }) {
 }
 
 function MaezonaPage({ data, mes, reload }) {
+  const [tab, setTab] = useState('desp')
   const [prop, setProp] = useState('todos')
   const [modal, setModal] = useState(false)
   const all = data.maezona_despesas.filter(x => x.mes === mes)
+  const rend = (data.maezona_rendimentos || []).filter(x => x.mes === mes)
   const rows = prop === 'todos' ? all : all.filter(x => x.prop === prop)
   const q = sum(all.filter(x => x.prop === 'Queluz'), 'valor')
   const v = sum(all.filter(x => x.prop === 'Vilamoura'), 'valor')
   const dv = sum(all.filter(x => x.prop === 'Diversos'), 'valor')
+  const tr = sum(rend, 'valor')
+  const td = q + v + dv
 
   const save = async f => { await db.insert('maezona_despesas', { mes, prop: f.prop || 'Queluz', categoria: f.categoria || 'Outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(false) }
 
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Queluz" value={eur(q)} ac="var(--teal2)" />
-        <StatCard label="Vilamoura" value={eur(v)} ac="var(--teal2)" />
-        <StatCard label="Diversos" value={eur(dv)} ac="var(--teal2)" />
-        <StatCard label={`Total ${mesL(mes)}`} value={eur(q + v + dv)} ac="var(--red2)" />
+        <StatCard label="Rendimentos" value={eur(tr)} sub={mesL(mes)} ac="var(--teal2)" />
+        <StatCard label={`Despesas ${mesL(mes)}`} value={eur(td)} ac="var(--red2)" />
+        <StatCard label="Saldo" value={<Chip v={tr - td} />} sub={mesL(mes)} ac="var(--teal2)" />
+        <StatCard label="Queluz + Vilamoura" value={eur(q + v)} sub="casas" ac="var(--teal2)" />
       </div>
-      <div className="filter-row">
-        {['todos', 'Queluz', 'Vilamoura', 'Diversos'].map(x => (
-          <button key={x} className={`fpill ${prop === x ? 'active' : ''}`} onClick={() => setProp(x)}>{x === 'todos' ? 'Todas' : x}</button>
-        ))}
-      </div>
-      <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal(true)} />
-      <Tbl cols={[{ k: 'prop', l: 'Prop.' }, { k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rows} />
-      {modal && <Modal title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['Condomínio', 'Seguros', 'Energia', 'Água', 'Garagem', 'Comunicações', 'Saúde', 'Cuidadoras', 'Alimentação', 'Outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
+      <Tabs items={[{ k: 'desp', l: 'Despesas' }, { k: 'rend', l: 'Rendimentos' }]} active={tab} onChange={t => { setTab(t); setProp('todos') }} />
+      {tab === 'desp' && (
+        <>
+          <div className="filter-row">
+            {['todos', 'Queluz', 'Vilamoura', 'Diversos'].map(x => (
+              <button key={x} className={`fpill ${prop === x ? 'active' : ''}`} onClick={() => setProp(x)}>{x === 'todos' ? 'Todas' : x}</button>
+            ))}
+          </div>
+          <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal(true)} />
+          <Tbl cols={[{ k: 'prop', l: 'Prop.' }, { k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rows} />
+        </>
+      )}
+      {tab === 'rend' && (
+        <>
+          <SecHead label={`Rendimentos — ${mesL(mes)}`} />
+          <Tbl cols={[{ k: 'tipo', l: 'Tipo', n: true }, { k: 'entidade', l: 'Entidade' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rend} />
+        </>
+      )}
+      {modal && <Modal title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['condominio', 'seguros', 'energia', 'agua', 'garagem', 'comunicacoes', 'saude', 'cuidadoras', 'alimentacao', 'outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
     </>
   )
 }
@@ -384,7 +399,7 @@ function CopaPage({ data, mes, reload }) {
 // ══════════════════════════════════════════════════════════════════════════
 // APP SHELL
 // ══════════════════════════════════════════════════════════════════════════
-const TABLES = ['vanessa_rendimentos','vanessa_despesas','vanessa_freelancers','maezona_despesas','milton_despesas','milton_concertos','villa_reservas','villa_despesas','copa_receitas','copa_despesas','copa_transferencias']
+const TABLES = ['vanessa_rendimentos','vanessa_despesas','vanessa_freelancers','maezona_despesas','maezona_rendimentos','milton_despesas','milton_concertos','villa_reservas','villa_despesas','copa_receitas','copa_despesas','copa_transferencias']
 
 export default function App() {
   const [page, setPage] = useState('dash')
