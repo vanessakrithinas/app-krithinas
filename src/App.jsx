@@ -559,16 +559,17 @@ function MaezonaPage({ data, mes, reload }) {
       )}
       {tab === 'rend' && (
         <>
-          <SecHead label={`Rendimentos — ${mesL(mes)}`} />
+          <SecHead label={`Rendimentos — ${mesL(mes)}`} onAdd={() => setModal('rend')} />
           <Tbl table="maezona_rendimentos" onSave={reload} cols={[
-            { k: 'tipo', l: 'Tipo', n: true, edit: 'text' },
+            { k: 'tipo', l: 'Tipo', n: true, edit: 'select', options: ['pensão','transferência','IRS','outro'] },
             { k: 'entidade', l: 'Entidade', edit: 'text' },
             { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
             { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['recebido','pendente'] },
           ]} rows={rend} />
         </>
       )}
-      {modal && <Modal title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['condomínio', 'seguros', 'energia', 'água', 'garagem', 'comunicações', 'saúde', 'cuidadoras', 'alimentação', 'outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
+      {modal === true && <Modal title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['condomínio', 'seguros', 'energia', 'água', 'garagem', 'comunicações', 'saúde', 'cuidadoras', 'alimentação', 'outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
+      {modal === 'rend' && <Modal title="Novo rendimento — Mãezona" ac="var(--teal2)" fields={[{ k: 'tipo', l: 'Tipo', t: 'sel', o: ['pensão','transferência','IRS','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['recebido','pendente'] }]} onClose={() => setModal(false)} onSave={async f => { await db.insert('maezona_rendimentos', { mes, tipo: f.tipo, entidade: f.entidade, valor: +f.valor || 0, estado: f.estado || 'recebido' }); reload(); setModal(false) }} />}
     </>
   )
 }
