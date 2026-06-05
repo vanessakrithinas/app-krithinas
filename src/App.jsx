@@ -318,20 +318,21 @@ function MiltonPage({ data, mes, reload }) {
   const [tab, setTab] = useState('conc')
   const [modal, setModal] = useState(null)
   const desp = data.milton_despesas.filter(x => x.mes === mes)
-  const conc = data.milton_concertos
+  const concMes = data.milton_concertos.filter(x => x.data && x.data.startsWith(mes))
+  const concAnо = data.milton_concertos
 
   const saveConc = async f => { await db.insert('milton_concertos', { data: f.data, descricao: f.descricao, entidade: f.entidade, nif: f.nif, localidade: f.localidade, valor: +f.valor || 0, iva: +f.iva || 0, estado: f.estado || 'Done' }); reload(); setModal(null) }
 
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Concertos 2026" value={eur(sum(conc, 'valor'))} sub={`${conc.length} actuações`} ac="var(--violet2)" />
-        <StatCard label="IVA cobrado" value={eur(sum(conc, 'iva'))} ac="var(--violet2)" />
-        <StatCard label={`Despesas fixas ${mesL(mes)}`} value={eur(sum(desp, 'valor'))} ac="var(--red2)" />
-        <StatCard label="Em curso" value={`${conc.filter(c => c.estado !== 'Done').length} actuações`} ac="var(--violet2)" />
+        <StatCard label={`Recebimentos ${mesL(mes)}`} value={eur(sum(concMes, 'valor'))} sub={`${concMes.length} actuações`} ac="var(--violet2)" />
+        <StatCard label="IVA do mês" value={eur(sum(concMes, 'iva'))} ac="var(--violet2)" />
+        <StatCard label={`Despesas ${mesL(mes)}`} value={eur(sum(desp, 'valor'))} ac="var(--red2)" />
+        <StatCard label="Total ano" value={eur(sum(concAnо, 'valor'))} sub={`${concAnо.length} actuações`} ac="var(--violet2)" />
       </div>
       <Tabs items={[{ k: 'conc', l: 'Concertos & Recibos' }, { k: 'desp', l: 'Despesas Casa Belas' }]} active={tab} onChange={setTab} />
-      {tab === 'conc' && <><SecHead label="Recibos verdes 2026" onAdd={() => setModal('conc')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'descricao', l: 'Concerto', n: true }, { k: 'entidade', l: 'Entidade' }, { k: 'localidade', l: 'Local' }, { k: 'nif', l: 'NIF' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? eur(r.iva) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={conc} /></>}
+      {tab === 'conc' && <><SecHead label={`Recibos verdes — ${mesL(mes)}`} onAdd={() => setModal('conc')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'descricao', l: 'Concerto', n: true }, { k: 'entidade', l: 'Entidade' }, { k: 'localidade', l: 'Local' }, { k: 'nif', l: 'NIF' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? eur(r.iva) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={concMes} /></>}
       {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
       {modal === 'conc' && <Modal title="Novo concerto — Milton" ac="var(--violet2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'descricao', l: 'Concerto', t: 'text' }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'nif', l: 'NIF', t: 'text' }, { k: 'localidade', l: 'Localidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'iva', l: 'IVA (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['Done', 'In progress'] }]} onClose={() => setModal(null)} onSave={saveConc} />}
     </>
