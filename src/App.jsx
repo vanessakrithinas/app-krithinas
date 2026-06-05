@@ -12,11 +12,11 @@ const MESES_DISPONIVEIS = ['2026-01','2026-02','2026-03','2026-04','2026-05','20
 
 // ── nav config ─────────────────────────────────────────────────────────────
 const NAV = [
-  { k: 'dash',    label: 'Visão geral', sub: '2026',           initials: 'KR', bg: '#2A1F0A', fg: '#C9A84C', ac: '#C9A84C' },
-  { k: 'vanessa', label: 'Vanessa',     sub: 'pessoal',        initials: 'VK', bg: '#1A1209', fg: '#E8C97A', ac: '#C9A84C' },
-  { k: 'maezona', label: 'Mãezona',     sub: 'família',        initials: 'MK', bg: '#0A1F16', fg: '#5DCAA5', ac: '#1D9E75' },
-  { k: 'milton',  label: 'Milton',      sub: 'concertos',      initials: 'MK', bg: '#160A2A', fg: '#A88AE8', ac: '#7C5FC4' },
-  { k: 'villa',   label: 'Villa',       sub: 'Vilamoura',      initials: 'VL', bg: '#0A1F10', fg: '#6AD48A', ac: '#4CAF72' },
+  { k: 'dash',    label: 'Visão geral', sub: '2026',            initials: 'KR', bg: '#2A1F0A', fg: '#C9A84C', ac: '#C9A84C' },
+  { k: 'vanessa', label: 'Vanessa',     sub: 'pessoal',         initials: 'VK', bg: '#1A1209', fg: '#E8C97A', ac: '#C9A84C' },
+  { k: 'maezona', label: 'Mãezona',     sub: 'família',         initials: 'MK', bg: '#0A1F16', fg: '#5DCAA5', ac: '#1D9E75' },
+  { k: 'milton',  label: 'Milton',      sub: 'concertos',       initials: 'MK', bg: '#160A2A', fg: '#A88AE8', ac: '#7C5FC4' },
+  { k: 'villa',   label: 'Villa',       sub: 'Vilamoura',       initials: 'VL', bg: '#0A1F10', fg: '#6AD48A', ac: '#4CAF72' },
   { k: 'copa',    label: 'Copa',        sub: 'Rio de Janeiro',  initials: 'RJ', bg: '#0A1525', fg: '#6AAEE8', ac: '#3A7FC4' },
 ]
 
@@ -415,6 +415,7 @@ export default function App() {
   const [mes, setMes] = useState('2026-01')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -444,7 +445,14 @@ export default function App() {
 
   return (
     <div className="app">
-      <nav className="sidebar">
+      {/* overlay mobile */}
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+
+      <nav className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <button className="sidebar-close" onClick={() => setSidebarOpen(false)}>×</button>
         <div className="logo-block">
           <div className="logo-eyebrow">Gestão financeira</div>
           <div className="logo-name">Krithinas</div>
@@ -452,7 +460,12 @@ export default function App() {
         </div>
         <div className="nav-section">
           {NAV.map(x => (
-            <button key={x.k} className={`nav-item ${page === x.k ? 'active' : ''}`} style={{ '--ac': x.ac }} onClick={() => setPage(x.k)}>
+            <button
+              key={x.k}
+              className={`nav-item ${page === x.k ? 'active' : ''}`}
+              style={{ '--ac': x.ac }}
+              onClick={() => { setPage(x.k); setSidebarOpen(false) }}
+            >
               <div className="nav-avatar" style={{ background: x.bg, color: x.fg, border: `1.5px solid ${page === x.k ? x.fg + '66' : 'transparent'}` }}>{x.initials}</div>
               <div className="nav-label-wrap">
                 {x.label}
@@ -467,9 +480,14 @@ export default function App() {
 
       <div className="main">
         <header className="topbar">
-          <div>
-            <div className="topbar-eyebrow" style={{ color: n.ac }}>{n.label} · {n.sub}</div>
-            <div className="topbar-title">{TITLES[page]}</div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <button className="hamburger" onClick={() => setSidebarOpen(true)}>
+              <i className="ti ti-menu-2" />
+            </button>
+            <div>
+              <div className="topbar-eyebrow" style={{ color: n.ac }}>{n.label} · {n.sub}</div>
+              <div className="topbar-title">{TITLES[page]}</div>
+            </div>
           </div>
           <div className="topbar-right">
             <MonthSelector mes={mes} onChange={setMes} />
