@@ -28,15 +28,29 @@ const TITLES = {
 
 // ── categoria cores ────────────────────────────────────────────────────────
 const CAT_COLORS = {
-  'alimentação':  { bg: '#FFF3E0', color: '#B45309', border: '#FDE68A' },
-  'casa':         { bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' },
-  'crédito':      { bg: '#FDF2F8', color: '#9D174D', border: '#FBCFE8' },
-  'filhos':       { bg: '#F0FDF4', color: '#15803D', border: '#BBF7D0' },
-  'financeiro':   { bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE' },
-  'pessoal':      { bg: '#FFF7ED', color: '#C2410C', border: '#FED7AA' },
-  'saúde':        { bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0' },
-  'transporte':   { bg: '#EFF6FF', color: '#075985', border: '#BAE6FD' },
-  'outros':       { bg: '#F9FAFB', color: '#4B5563', border: '#E5E7EB' },
+  'água':          { bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' },
+  'alimentação':   { bg: '#FFF3E0', color: '#B45309', border: '#FDE68A' },
+  'casa':          { bg: '#EFF6FF', color: '#1E40AF', border: '#BFDBFE' },
+  'habitação':     { bg: '#EFF6FF', color: '#1E40AF', border: '#BFDBFE' },
+  'comunicações':  { bg: '#EEF2FF', color: '#3730A3', border: '#C7D2FE' },
+  'condomínio':    { bg: '#F0F9FF', color: '#0369A1', border: '#BAE6FD' },
+  'cuidadoras':    { bg: '#FDF2F8', color: '#9D174D', border: '#FBCFE8' },
+  'energia':       { bg: '#FFF7ED', color: '#C2410C', border: '#FED7AA' },
+  'família':       { bg: '#F0FDF4', color: '#15803D', border: '#BBF7D0' },
+  'filhos':        { bg: '#F0FDF4', color: '#15803D', border: '#BBF7D0' },
+  'financeiro':    { bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE' },
+  'retenção':      { bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE' },
+  'farmácia':      { bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0' },
+  'saúde':         { bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0' },
+  'gás':           { bg: '#FEFCE8', color: '#92400E', border: '#FDE68A' },
+  'garagem':       { bg: '#F1F5F9', color: '#334155', border: '#CBD5E1' },
+  'impostos':      { bg: '#FEF2F2', color: '#991B1B', border: '#FECACA' },
+  'internet':      { bg: '#ECFEFF', color: '#0E7490', border: '#A5F3FC' },
+  'outros':        { bg: '#F9FAFB', color: '#4B5563', border: '#E5E7EB' },
+  'pessoal':       { bg: '#FFF7ED', color: '#C2410C', border: '#FED7AA' },
+  'seguros':       { bg: '#FAF5FF', color: '#7E22CE', border: '#E9D5FF' },
+  'transporte':    { bg: '#F0F9FF', color: '#075985', border: '#BAE6FD' },
+  'crédito':       { bg: '#FDF2F8', color: '#9D174D', border: '#FBCFE8' },
 }
 
 function CatBadge({ cat }) {
@@ -467,7 +481,7 @@ function MaezonaPage({ data, mes, reload }) {
             ))}
           </div>
           <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal(true)} />
-          <Tbl cols={[{ k: 'prop', l: 'Prop.' }, { k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rows} />
+          <Tbl cols={[{ k: 'prop', l: 'Prop.' }, { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} /> }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={rows} />
         </>
       )}
       {tab === 'rend' && (
@@ -500,7 +514,7 @@ function MiltonPage({ data, mes, reload }) {
       </div>
       <Tabs items={[{ k: 'conc', l: 'Concertos & Recibos' }, { k: 'desp', l: 'Despesas Casa Belas' }]} active={tab} onChange={setTab} />
       {tab === 'conc' && <><SecHead label={`Recibos verdes — ${mesL(mes)}`} onAdd={() => setModal('conc')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'descricao', l: 'Concerto', n: true }, { k: 'entidade', l: 'Entidade' }, { k: 'localidade', l: 'Local' }, { k: 'nif', l: 'NIF' }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'iva', l: 'IVA', r: true, fn: r => r.iva ? eur(r.iva) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={concMes} /></>}
-      {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
+      {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} /> }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
       {modal === 'conc' && <Modal title="Novo concerto — Milton" ac="var(--violet2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'descricao', l: 'Concerto', t: 'text' }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'nif', l: 'NIF', t: 'text' }, { k: 'localidade', l: 'Localidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'iva', l: 'IVA (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['Done', 'In progress'] }]} onClose={() => setModal(null)} onSave={saveConc} />}
     </>
   )
@@ -530,7 +544,7 @@ function VillaPage({ data, mes, reload }) {
       <Tabs items={[{ k: 'res', l: 'Calendário & Reservas' }, { k: 'all', l: 'Todas as Reservas' }, { k: 'desp', l: 'Encargos Fixos' }]} active={tab} onChange={setTab} />
       {tab === 'res' && <><SecHead label={`Reservas — ${mesL(mes)}`} onAdd={() => setModal('res')} /><Tbl cols={[{ k: 'entrada', l: 'Check-in' }, { k: 'saida', l: 'Check-out' }, { k: 'noites', l: 'Noites', fn: r => noites(r) }, { k: 'tipo', l: 'Tipo' }, { k: 'inquilino', l: 'Hóspede', n: true }, { k: 'canal', l: 'Canal' }, { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={resMes} /></>}
       {tab === 'all' && <><SecHead label="Todas as reservas 2026" onAdd={() => setModal('res')} /><Tbl cols={[{ k: 'entrada', l: 'Check-in' }, { k: 'saida', l: 'Check-out' }, { k: 'noites', l: 'Noites', fn: r => noites(r) }, { k: 'tipo', l: 'Tipo' }, { k: 'inquilino', l: 'Hóspede', n: true }, { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—' }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={resAnо} /></>}
-      {tab === 'desp' && <><SecHead label={`Encargos — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
+      {tab === 'desp' && <><SecHead label={`Encargos — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} /> }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={desp} /></>}
       {modal === 'res' && <Modal title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'entrada', l: 'Data entrada', t: 'date' }, { k: 'saida', l: 'Data saída', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Inquilino', 'Amigos', 'Família'] }, { k: 'inquilino', l: 'Nome / Quem', t: 'text' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo', 'Airbnb', 'Booking', 'Outro'] }, { k: 'valor', l: 'Receita (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['confirmado', 'pendente'] }]} onClose={() => setModal(null)} onSave={saveRes} />}
     </>
   )
@@ -562,7 +576,7 @@ function CopaPage({ data, mes, reload }) {
       </div>
       <div className="info-strip blue"><i className="ti ti-currency-real" /> Valores em BRL · Taxa referência: 1 BRL ≈ 0,18 EUR · Câmbio real por transferência</div>
       <Tabs items={[{ k: 'desp', l: 'Despesas' }, { k: 'rec', l: 'Receitas' }, { k: 'res', l: 'Resumo Ano' }, { k: 'tr', l: 'Transf. PT' }]} active={tab} onChange={setTab} />
-      {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria' }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={despMes} /></>}
+      {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} /><Tbl cols={[{ k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} /> }, { k: 'descricao', l: 'Descrição', n: true }, { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={despMes} /></>}
       {tab === 'rec' && <><SecHead label={`Receitas — ${mesL(mes)}`} onAdd={() => setModal('rec')} /><Tbl cols={[{ k: 'descricao', l: 'Descrição', n: true }, { k: 'canal', l: 'Canal' }, { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'eur', l: '≈ EUR', r: true, fn: r => eur(r.valor_brl * (r.taxa || 0.18)) }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={recMes} /></>}
       {tab === 'res' && <><SecHead label="Resumo por mês 2026" /><Tbl cols={[{ k: 'mes', l: 'Mês', fn: r => mesL(r.mes), n: true }, { k: 'rec', l: 'Aluguel BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'desp', l: 'Despesas BRL', r: true, fn: r => brl(sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl')) }, { k: 'saldo', l: 'Saldo', r: true, fn: r => { const s = r.valor_brl - sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl'); return <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span> } }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={recAnо} /></>}
       {tab === 'tr' && <><SecHead label="Transferências BRL → EUR" onAdd={() => setModal('tr')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'notas', l: 'Referência', n: true }, { k: 'valor_brl', l: 'Enviado BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'valor_eur', l: 'Recebido EUR', r: true, fn: r => eur(r.valor_eur) }, { k: 'taxa', l: 'Taxa real', r: true, fn: r => r.valor_brl ? (r.valor_eur / r.valor_brl).toFixed(4) : '—' }]} rows={tr} /></>}
