@@ -632,8 +632,12 @@ function VanessaPage({ data, mes, reload }) {
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Salário Bauer" value={eur(salario)} sub={mesL(mes)} ac="var(--gold2)" />
-        <StatCard label={`Freelance ${mesL(mes)}`} value={eur(tf)} sub={`${free.length} recibo${free.length !== 1 ? 's' : ''}`} ac="var(--gold2)" />
+        <StatCard
+          label={`Rendimentos ${mesL(mes)}`}
+          value={eur(tr + tf)}
+          sub={`Bauer ${eur(salario)} · Avenças ${eur(sum(rend.filter(x => x.tipo === 'Avença'), 'valor'))} · Freelance ${eur(tf)} · Abono ${eur(sum(rend.filter(x => x.tipo === 'Abono'), 'valor'))}`}
+          ac="var(--gold2)"
+        />
         <StatCard label={`Despesas ${mesL(mes)}`} value={eur(td)} ac="var(--red2)" />
         <StatCard label="Saldo" value={<Chip v={tr + tf - td} />} sub={mesL(mes)} ac="var(--gold2)" />
       </div>
