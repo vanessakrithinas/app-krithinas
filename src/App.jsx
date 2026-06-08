@@ -916,16 +916,20 @@ function CopaPage({ data, mes, reload, tab, setTab }) {
 // ══════════════════════════════════════════════════════════════════════════
 const TABLES = ['vanessa_rendimentos','vanessa_despesas','vanessa_freelancers','maezona_despesas','maezona_rendimentos','milton_despesas','milton_concertos','villa_reservas','villa_despesas','copa_receitas','copa_despesas','copa_transferencias']
 
+const PAGE_DEFAULT_TABS = { vanessa: 'desp', maezona: 'desp', milton: 'conc', villa: 'res', copa: 'desp' }
+
 export default function App() {
-  const getInitialPage = () => {
+  const parseHash = () => {
     const hash = window.location.hash.replace('#', '')
-    const [p] = hash.split('/')
-    return NAV.find(x => x.k === p) ? p : 'dash'
+    const [p, m, t] = hash.split('/')
+    return { p, m, t }
   }
-  const getInitialMes = () => {
-    const hash = window.location.hash.replace('#', '')
-    const [, m] = hash.split('/')
-    return MESES_DISPONIVEIS.includes(m) ? m : '2026-01'
+  const getInitialPage = () => { const { p } = parseHash(); return NAV.find(x => x.k === p) ? p : 'dash' }
+  const getInitialMes  = () => { const { m } = parseHash(); return MESES_DISPONIVEIS.includes(m) ? m : '2026-01' }
+  const getInitialTab  = (pageKey, validTabs) => {
+    const { p, t } = parseHash()
+    if (p === pageKey && t && validTabs.includes(t)) return t
+    return PAGE_DEFAULT_TABS[pageKey]
   }
 
   const [page, setPage] = useState(getInitialPage)
@@ -933,16 +937,26 @@ export default function App() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [vanessaTab, setVanessaTab] = useState('desp')
-  const [maezonaTab, setMaezonaTab] = useState('desp')
-  const [miltonTab, setMiltonTab] = useState('conc')
-  const [villaTab, setVillaTab] = useState('res')
-  const [copaTab, setCopaTab] = useState('desp')
+  const [vanessaTab, setVanessaTab] = useState(() => getInitialTab('vanessa', ['desp','rend','free']))
+  const [maezonaTab, setMaezonaTab] = useState(() => getInitialTab('maezona', ['desp','rend']))
+  const [miltonTab,  setMiltonTab]  = useState(() => getInitialTab('milton',  ['conc','desp']))
+  const [villaTab,   setVillaTab]   = useState(() => getInitialTab('villa',   ['res','all','desp']))
+  const [copaTab,    setCopaTab]    = useState(() => getInitialTab('copa',    ['desp','rec','res','tr']))
+
+  // wrapper para setTab que também actualiza o hash
+  const makeSetTab = (pageKey, setter) => (t) => {
+    setter(t)
+    const currentHash = window.location.hash.replace('#', '')
+    const [p, m] = currentHash.split('/')
+    window.location.hash = `${p}/${m}/${t}`
+  }
 
   const navigate = (p, m) => {
     const newMes = m || mes
     const newPage = p || page
-    window.location.hash = `${newPage}/${newMes}`
+    // ao navegar para outra página, usa o tab por defeito dessa página
+    const defaultTab = PAGE_DEFAULT_TABS[newPage] || ''
+    window.location.hash = defaultTab ? `${newPage}/${newMes}/${defaultTab}` : `${newPage}/${newMes}`
     setPage(newPage)
     if (m) setMes(m)
   }
@@ -966,11 +980,11 @@ export default function App() {
 
   const PAGES = {
     dash:    data ? <Dashboard data={data} mes={mes} /> : null,
-    vanessa: data ? <VanessaPage data={data} mes={mes} reload={() => load(true)} tab={vanessaTab} setTab={setVanessaTab} /> : null,
-    maezona: data ? <MaezonaPage data={data} mes={mes} reload={() => load(true)} tab={maezonaTab} setTab={setMaezonaTab} /> : null,
-    milton:  data ? <MiltonPage data={data} mes={mes} reload={() => load(true)} tab={miltonTab} setTab={setMiltonTab} /> : null,
-    villa:   data ? <VillaPage data={data} mes={mes} reload={() => load(true)} tab={villaTab} setTab={setVillaTab} /> : null,
-    copa:    data ? <CopaPage data={data} mes={mes} reload={() => load(true)} tab={copaTab} setTab={setCopaTab} /> : null,
+    vanessa: data ? <VanessaPage data={data} mes={mes} reload={() => load(true)} tab={vanessaTab} setTab={makeSetTab('vanessa', setVanessaTab)} /> : null,
+    maezona: data ? <MaezonaPage data={data} mes={mes} reload={() => load(true)} tab={maezonaTab} setTab={makeSetTab('maezona', setMaezonaTab)} /> : null,
+    milton:  data ? <MiltonPage  data={data} mes={mes} reload={() => load(true)} tab={miltonTab}  setTab={makeSetTab('milton',  setMiltonTab)}  /> : null,
+    villa:   data ? <VillaPage   data={data} mes={mes} reload={() => load(true)} tab={villaTab}   setTab={makeSetTab('villa',   setVillaTab)}   /> : null,
+    copa:    data ? <CopaPage    data={data} mes={mes} reload={() => load(true)} tab={copaTab}    setTab={makeSetTab('copa',    setCopaTab)}    /> : null,
   }
 
   return (
