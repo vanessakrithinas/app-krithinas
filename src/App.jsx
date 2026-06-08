@@ -580,8 +580,7 @@ function Dashboard({ data, mes }) {
   )
 }
 
-function VanessaPage({ data, mes, reload }) {
-  const [tab, setTab] = useState('desp')
+function VanessaPage({ data, mes, reload, tab, setTab }) {
   const [drawer, setDrawer] = useState(false)
   const [modal, setModal] = useState(null)
   const [catFiltro, setCatFiltro] = useState('todas')
@@ -717,8 +716,7 @@ function VanessaPage({ data, mes, reload }) {
   )
 }
 
-function MaezonaPage({ data, mes, reload }) {
-  const [tab, setTab] = useState('desp')
+function MaezonaPage({ data, mes, reload, tab, setTab }) {
   const [prop, setProp] = useState('todos')
   const [modal, setModal] = useState(false)
   const all = data.maezona_despesas.filter(x => x.mes === mes)
@@ -775,8 +773,7 @@ function MaezonaPage({ data, mes, reload }) {
   )
 }
 
-function MiltonPage({ data, mes, reload }) {
-  const [tab, setTab] = useState('conc')
+function MiltonPage({ data, mes, reload, tab, setTab }) {
   const [modal, setModal] = useState(null)
   const desp = data.milton_despesas.filter(x => x.mes === mes)
   const concMes = data.milton_concertos.filter(x => x.data && x.data.startsWith(mes))
@@ -815,8 +812,7 @@ function MiltonPage({ data, mes, reload }) {
   )
 }
 
-function VillaPage({ data, mes, reload }) {
-  const [tab, setTab] = useState('res')
+function VillaPage({ data, mes, reload, tab, setTab }) {
   const [modal, setModal] = useState(null)
   const resAnо = data.villa_reservas
   const resMes = data.villa_reservas.filter(r => r.entrada && r.entrada.startsWith(mes))
@@ -868,8 +864,7 @@ function VillaPage({ data, mes, reload }) {
   )
 }
 
-function CopaPage({ data, mes, reload }) {
-  const [tab, setTab] = useState('desp')
+function CopaPage({ data, mes, reload, tab, setTab }) {
   const [modal, setModal] = useState(null)
   const recMes = data.copa_receitas.filter(x => x.mes === mes)
   const despMes = data.copa_despesas.filter(x => x.mes === mes)
@@ -938,6 +933,11 @@ export default function App() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [vanessaTab, setVanessaTab] = useState('desp')
+  const [maezonaTab, setMaezonaTab] = useState('desp')
+  const [miltonTab, setMiltonTab] = useState('conc')
+  const [villaTab, setVillaTab] = useState('res')
+  const [copaTab, setCopaTab] = useState('desp')
 
   const navigate = (p, m) => {
     const newMes = m || mes
@@ -966,11 +966,11 @@ export default function App() {
 
   const PAGES = {
     dash:    data ? <Dashboard data={data} mes={mes} /> : null,
-    vanessa: data ? <VanessaPage data={data} mes={mes} reload={() => load(true)} /> : null,
-    maezona: data ? <MaezonaPage data={data} mes={mes} reload={() => load(true)} /> : null,
-    milton:  data ? <MiltonPage data={data} mes={mes} reload={() => load(true)} /> : null,
-    villa:   data ? <VillaPage data={data} mes={mes} reload={() => load(true)} /> : null,
-    copa:    data ? <CopaPage data={data} mes={mes} reload={() => load(true)} /> : null,
+    vanessa: data ? <VanessaPage data={data} mes={mes} reload={() => load(true)} tab={vanessaTab} setTab={setVanessaTab} /> : null,
+    maezona: data ? <MaezonaPage data={data} mes={mes} reload={() => load(true)} tab={maezonaTab} setTab={setMaezonaTab} /> : null,
+    milton:  data ? <MiltonPage data={data} mes={mes} reload={() => load(true)} tab={miltonTab} setTab={setMiltonTab} /> : null,
+    villa:   data ? <VillaPage data={data} mes={mes} reload={() => load(true)} tab={villaTab} setTab={setVillaTab} /> : null,
+    copa:    data ? <CopaPage data={data} mes={mes} reload={() => load(true)} tab={copaTab} setTab={setCopaTab} /> : null,
   }
 
   return (
