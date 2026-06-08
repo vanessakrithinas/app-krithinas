@@ -276,55 +276,74 @@ function TopbarClock() {
   )
 }
 
-// ── drawer despesa ─────────────────────────────────────────────────────────
-function DrawerDespesa({ title, ac, categories, mes, onClose, onSave }) {
-  const [form, setForm] = useState({ data: todayISO(), descricao: '', categoria: '', valor: '', estado: '' })
+// ── constantes drawer ──────────────────────────────────────────────────────
+const ESTADO_BTNS = [
+  { k: 'pago',       label: 'pago',       icon: 'ti-check'    },
+  { k: 'pendente',   label: 'pendente',   icon: 'ti-clock'    },
+  { k: 'confirmado', label: 'confirmado', icon: 'ti-calendar' },
+]
+const ESTADO_COLORS = {
+  pago:       { border: '#3B6D11', bg: '#EAF3DE', color: '#3B6D11' },
+  pendente:   { border: '#854F0B', bg: '#FAEEDA', color: '#854F0B' },
+  confirmado: { border: '#185FA5', bg: '#E6F1FB', color: '#185FA5' },
+  recebido:   { border: '#3B6D11', bg: '#EAF3DE', color: '#3B6D11' },
+  Done:       { border: '#3B6D11', bg: '#EAF3DE', color: '#3B6D11' },
+  'In progress': { border: '#854F0B', bg: '#FAEEDA', color: '#854F0B' },
+}
+
+const DRAWER_CSS = `
+  .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;animation:dfadeIn .2s}
+  @keyframes dfadeIn{from{opacity:0}to{opacity:1}}
+  .drawer-panel{position:fixed;top:0;right:0;bottom:0;width:min(400px,100vw);background:var(--bg);z-index:201;display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,.25);animation:dslideIn .28s cubic-bezier(.4,0,.2,1)}
+  @keyframes dslideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+  .drawer-hd{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--border)}
+  .drawer-hd-title{font-size:15px;font-weight:600;color:var(--text)}
+  .drawer-close{background:none;border:1px solid var(--border);border-radius:50%;width:30px;height:30px;cursor:pointer;color:var(--text2);font-size:16px;display:flex;align-items:center;justify-content:center;line-height:1}
+  .drawer-body{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:16px}
+  .dfl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:6px;font-weight:500}
+  .di{width:100%;box-sizing:border-box;font-size:14px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);outline:none;font-family:inherit;transition:border-color .15s}
+  .cat-pill-grid{display:flex;flex-wrap:wrap;gap:7px}
+  .cat-pill{padding:5px 13px;border-radius:20px;font-size:12px;cursor:pointer;border:1.5px solid transparent;transition:all .15s;font-weight:400;background:none}
+  .cat-pill.sel{border-width:2px;font-weight:600}
+  .estado-grid{display:flex;flex-wrap:wrap;gap:8px}
+  .estado-pill{flex:1;min-width:80px;padding:9px 4px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text2);text-align:center;transition:all .15s;font-family:inherit}
+  .drawer-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px}
+  .drawer-btn-cancel{flex:1;padding:11px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit}
+  .drawer-btn-save{flex:2;padding:11px;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+  .drawer-btn-save:disabled{opacity:.4;cursor:not-allowed}
+`
+
+// ── drawer genérico ────────────────────────────────────────────────────────
+// fields: [{ k, l, t: 'text'|'date'|'number'|'money'|'sel'|'cat'|'estado', o: [], p: '' }]
+// t='cat'  → badges coloridos (usa CAT_COLORS); passar o: ['cat1','cat2',...]
+// t='estado' → pills coloridas; passar o: ['pago','pendente',...]
+// t='money' → input text que aceita vírgula e ponto
+function Drawer({ title, ac, fields, onClose, onSave }) {
+  const init = {}
+  fields.forEach(f => {
+    if (f.t === 'date') init[f.k] = todayISO()
+    else init[f.k] = ''
+  })
+  const [form, setForm] = useState(init)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSave = () => {
-    if (!form.descricao || !form.categoria || !form.valor || !form.estado) return
-    const valorNum = parseFloat(form.valor.replace(',', '.'))
-    if (isNaN(valorNum)) return
-    onSave({ ...form, valor: valorNum })
+    const out = { ...form }
+    fields.forEach(f => {
+      if (f.t === 'money') out[f.k] = parseFloat((form[f.k] || '0').replace(',', '.')) || 0
+      if (f.t === 'number') out[f.k] = +form[f.k] || 0
+    })
+    onSave(out)
   }
 
-  const estadoBtns = [
-    { k: 'pago',       label: 'pago',       icon: 'ti-check'    },
-    { k: 'pendente',   label: 'pendente',   icon: 'ti-clock'    },
-    { k: 'confirmado', label: 'confirmado', icon: 'ti-calendar' },
-  ]
+  const isValid = fields.every(f => {
+    if (f.required === false) return true
+    return form[f.k] !== '' && form[f.k] !== null && form[f.k] !== undefined
+  })
 
-  const estadoColors = {
-    pago:       { border: '#3B6D11', bg: '#EAF3DE', color: '#3B6D11' },
-    pendente:   { border: '#854F0B', bg: '#FAEEDA', color: '#854F0B' },
-    confirmado: { border: '#185FA5', bg: '#E6F1FB', color: '#185FA5' },
-  }
-
-  // drawer CSS via style tag injected once
   return (
     <>
-      <style>{`
-        .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;animation:fadeIn .2s}
-        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-        .drawer-panel{position:fixed;top:0;right:0;bottom:0;width:min(380px,100vw);background:var(--bg);z-index:201;display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,.25);animation:slideIn .28s cubic-bezier(.4,0,.2,1)}
-        @keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
-        .drawer-hd{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--border)}
-        .drawer-hd-title{font-size:15px;font-weight:600;color:var(--text)}
-        .drawer-close{background:none;border:1px solid var(--border);border-radius:50%;width:30px;height:30px;cursor:pointer;color:var(--text2);font-size:16px;display:flex;align-items:center;justify-content:center;line-height:1}
-        .drawer-body{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:16px}
-        .drawer-field-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:6px;font-weight:500}
-        .drawer-input{width:100%;box-sizing:border-box;font-size:14px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);outline:none;font-family:inherit;transition:border-color .15s}
-        .drawer-input:focus{border-color:${ac}}
-        .cat-pill-grid{display:flex;flex-wrap:wrap;gap:7px}
-        .cat-pill{padding:5px 13px;border-radius:20px;font-size:12px;cursor:pointer;border:1.5px solid transparent;transition:all .15s;font-weight:400;background:none}
-        .cat-pill.sel{border-width:2px;font-weight:600}
-        .estado-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-        .estado-pill{padding:9px 4px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text2);text-align:center;transition:all .15s;font-family:inherit}
-        .drawer-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px}
-        .drawer-btn-cancel{flex:1;padding:11px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit}
-        .drawer-btn-save{flex:2;padding:11px;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:${ac}}
-        .drawer-btn-save:disabled{opacity:.4;cursor:not-allowed}
-      `}</style>
+      <style>{DRAWER_CSS}</style>
       <div className="drawer-overlay" onClick={e => e.target === e.currentTarget && onClose()} />
       <div className="drawer-panel">
         <div className="drawer-hd">
@@ -332,83 +351,65 @@ function DrawerDespesa({ title, ac, categories, mes, onClose, onSave }) {
           <button className="drawer-close" onClick={onClose}>×</button>
         </div>
         <div className="drawer-body">
-
-          <div>
-            <div className="drawer-field-label">Data</div>
-            <input className="drawer-input" type="date" value={form.data} onChange={e => set('data', e.target.value)} />
-          </div>
-
-          <div>
-            <div className="drawer-field-label">Descrição</div>
-            <input className="drawer-input" type="text" value={form.descricao} placeholder="ex: supermercado, farmácia..." onChange={e => set('descricao', e.target.value)} />
-          </div>
-
-          <div>
-            <div className="drawer-field-label">Categoria</div>
-            <div className="cat-pill-grid">
-              {categories.map(cat => {
-                const c = CAT_COLORS[cat] || CAT_COLORS['outros']
-                const sel = form.categoria === cat
-                return (
-                  <button
-                    key={cat}
-                    className={`cat-pill${sel ? ' sel' : ''}`}
-                    style={{
-                      background: c.bg,
-                      color: c.color,
-                      borderColor: sel ? c.border : c.bg,
-                    }}
-                    onClick={() => set('categoria', cat)}
-                  >{cat}</button>
-                )
-              })}
+          {fields.map(f => (
+            <div key={f.k}>
+              <div className="dfl">{f.l}</div>
+              {f.t === 'cat' && (
+                <div className="cat-pill-grid">
+                  {f.o.map(cat => {
+                    const c = CAT_COLORS[cat] || CAT_COLORS['outros']
+                    const sel = form[f.k] === cat
+                    return (
+                      <button key={cat} className={`cat-pill${sel ? ' sel' : ''}`}
+                        style={{ background: c.bg, color: c.color, borderColor: sel ? c.border : c.bg }}
+                        onClick={() => set(f.k, cat)}>{cat}</button>
+                    )
+                  })}
+                </div>
+              )}
+              {f.t === 'estado' && (
+                <div className="estado-grid">
+                  {f.o.map(k => {
+                    const sel = form[f.k] === k
+                    const c = ESTADO_COLORS[k] || ESTADO_COLORS['pendente']
+                    const icons = { pago: 'ti-check', recebido: 'ti-check', pendente: 'ti-clock', confirmado: 'ti-calendar', Done: 'ti-check', 'In progress': 'ti-player-play' }
+                    return (
+                      <button key={k} className="estado-pill"
+                        style={sel ? { borderColor: c.border, background: c.bg, color: c.color } : {}}
+                        onClick={() => set(f.k, k)}>
+                        <i className={`ti ${icons[k] || 'ti-circle'}`} style={{ fontSize: 13, marginRight: 4 }} />{k}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              {f.t === 'sel' && (
+                <select className="di" value={form[f.k]} onChange={e => set(f.k, e.target.value)}
+                  style={{ borderColor: form[f.k] ? `var(--border)` : `var(--border)` }}>
+                  <option value="">Escolher...</option>
+                  {f.o.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              )}
+              {f.t === 'money' && (
+                <input className="di" type="text" inputMode="decimal" value={form[f.k]}
+                  placeholder={f.p || '0,00'}
+                  style={{ fontFamily: 'DM Mono, monospace' }}
+                  onChange={e => set(f.k, e.target.value.replace(/[^0-9.,]/g, ''))}
+                  onFocus={e => e.target.style.borderColor = ac}
+                  onBlur={e => e.target.style.borderColor = ''} />
+              )}
+              {(f.t === 'text' || f.t === 'date' || f.t === 'number') && (
+                <input className="di" type={f.t} value={form[f.k]} placeholder={f.p || ''}
+                  onChange={e => set(f.k, e.target.value)}
+                  onFocus={e => e.target.style.borderColor = ac}
+                  onBlur={e => e.target.style.borderColor = ''} />
+              )}
             </div>
-          </div>
-
-          <div>
-            <div className="drawer-field-label">Valor (€)</div>
-            <input
-              className="drawer-input"
-              type="text"
-              inputMode="decimal"
-              value={form.valor}
-              placeholder="0,00"
-              onChange={e => {
-                const v = e.target.value.replace(/[^0-9.,]/g, '')
-                set('valor', v)
-              }}
-            />
-          </div>
-
-          <div>
-            <div className="drawer-field-label">Estado</div>
-            <div className="estado-grid">
-              {estadoBtns.map(b => {
-                const sel = form.estado === b.k
-                const c = estadoColors[b.k]
-                return (
-                  <button
-                    key={b.k}
-                    className="estado-pill"
-                    style={sel ? { borderColor: c.border, background: c.bg, color: c.color } : {}}
-                    onClick={() => set('estado', b.k)}
-                  >
-                    <i className={`ti ${b.icon}`} style={{ fontSize: 13, marginRight: 4 }} />
-                    {b.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
+          ))}
         </div>
         <div className="drawer-foot">
           <button className="drawer-btn-cancel" onClick={onClose}>Cancelar</button>
-          <button
-            className="drawer-btn-save"
-            disabled={!form.descricao || !form.categoria || !form.valor || !form.estado}
-            onClick={handleSave}
-          >
+          <button className="drawer-btn-save" style={{ background: ac }} onClick={handleSave}>
             <i className="ti ti-device-floppy" style={{ fontSize: 14, marginRight: 6 }} />Guardar
           </button>
         </div>
@@ -417,158 +418,84 @@ function DrawerDespesa({ title, ac, categories, mes, onClose, onSave }) {
   )
 }
 
-// ── modal genérico (mantido para todos os outros casos) ────────────────────
-function Modal({ title, ac, fields, onClose, onSave }) {
-  const [form, setForm] = useState({})
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-
-  return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-box">
-        <div className="modal-hd">
-          <span className="modal-title">{title}</span>
-          <button className="modal-close" onClick={onClose}>×</button>
-        </div>
-        {fields.map(f => (
-          <div className="field" key={f.k}>
-            <label>{f.l}</label>
-            {f.t === 'sel'
-              ? <select defaultValue="" onChange={e => set(f.k, e.target.value)}>
-                  <option value="" disabled>Escolher...</option>
-                  {f.o.map(o => <option key={o}>{o}</option>)}
-                </select>
-              : <input type={f.t} placeholder={f.p || ''} onChange={e => set(f.k, e.target.value)} />
-            }
-          </div>
-        ))}
-        <div className="modal-actions">
-          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
-          <button className="btn-save" style={{ background: ac }} onClick={() => onSave(form)}>Guardar</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── modal freelance com cálculo automático ─────────────────────────────────
-function ModalFreelance({ onClose, onSave }) {
+// ── drawer freelance com cálculo automático ────────────────────────────────
+function DrawerFreelance({ onClose, onSave, ac = 'var(--gold2)' }) {
   const [form, setForm] = useState({
-    data: '', cliente: '', descricao: '',
+    data: todayISO(), cliente: '', descricao: '',
     valor: '', retencao: 25, iva: 23, estado: 'pago',
     temRetencao: true, temIva: true,
   })
-
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  const valorNum  = +form.valor || 0
+  const valorNum  = parseFloat((form.valor || '0').replace(',', '.')) || 0
   const retPct    = form.temRetencao ? (+form.retencao || 0) : 0
-  const ivaPct    = form.temIva      ? (+form.iva      || 0) : 0
+  const ivaPct    = form.temIva      ? (+form.iva || 0) : 0
   const retValor  = +(valorNum * retPct / 100).toFixed(2)
   const ivaValor  = +(valorNum * ivaPct / 100).toFixed(2)
   const totalDoc  = +(valorNum + ivaValor).toFixed(2)
   const totalPago = +(totalDoc - retValor).toFixed(2)
 
-  const handleSave = () => {
-    onSave({
-      data: form.data,
-      cliente: form.cliente,
-      descricao: form.descricao,
-      valor: valorNum,
-      retencao: retPct,
-      iva: ivaValor,
-      estado: form.estado,
-    })
-  }
-
-  const rowStyle = { display: 'flex', gap: 8 }
-  const halfField = { flex: 1 }
+  const handleSave = () => onSave({ data: form.data, cliente: form.cliente, descricao: form.descricao, valor: valorNum, retencao: retPct, iva: ivaValor, estado: form.estado })
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-box">
-        <div className="modal-hd">
-          <span className="modal-title">Novo recibo freelance</span>
-          <button className="modal-close" onClick={onClose}>×</button>
+    <>
+      <style>{DRAWER_CSS}</style>
+      <div className="drawer-overlay" onClick={e => e.target === e.currentTarget && onClose()} />
+      <div className="drawer-panel">
+        <div className="drawer-hd">
+          <span className="drawer-hd-title">Novo recibo freelance</span>
+          <button className="drawer-close" onClick={onClose}>×</button>
         </div>
-
-        <div style={rowStyle}>
-          <div className="field" style={halfField}>
-            <label>Data</label>
-            <input type="date" value={form.data} onChange={e => set('data', e.target.value)} />
-          </div>
-          <div className="field" style={halfField}>
-            <label>Estado</label>
-            <select value={form.estado} onChange={e => set('estado', e.target.value)}>
-              <option value="pago">Pago</option>
-              <option value="pendente">Pendente</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="field">
-          <label>Cliente</label>
-          <input type="text" value={form.cliente} onChange={e => set('cliente', e.target.value)} />
-        </div>
-
-        <div className="field">
-          <label>Descrição</label>
-          <input type="text" value={form.descricao} onChange={e => set('descricao', e.target.value)} />
-        </div>
-
-        <div className="field">
-          <label>Valor ilíquido (€)</label>
-          <input type="number" value={form.valor} onChange={e => set('valor', e.target.value)} placeholder="0.00" />
-        </div>
-
-        <div style={rowStyle}>
-          <div className="field" style={halfField}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input type="checkbox" checked={form.temRetencao} onChange={e => set('temRetencao', e.target.checked)}
-                style={{ width: 'auto', margin: 0 }} />
-              Retenção IRS (%)
-            </label>
-            <input type="number" value={form.retencao} disabled={!form.temRetencao}
-              onChange={e => set('retencao', e.target.value)}
-              style={{ opacity: form.temRetencao ? 1 : 0.4 }} />
-          </div>
-          <div className="field" style={halfField}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input type="checkbox" checked={form.temIva} onChange={e => set('temIva', e.target.checked)}
-                style={{ width: 'auto', margin: 0 }} />
-              IVA (%)
-            </label>
-            <input type="number" value={form.iva} disabled={!form.temIva}
-              onChange={e => set('iva', e.target.value)}
-              style={{ opacity: form.temIva ? 1 : 0.4 }} />
-          </div>
-        </div>
-
-        {valorNum > 0 && (
-          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 13px', marginBottom: 13, fontSize: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, color: 'var(--text2)' }}>
-              <span>Valor ilíquido</span><span style={{ fontFamily: 'DM Mono, monospace' }}>{eur(valorNum)}</span>
+        <div className="drawer-body">
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div className="dfl">Data</div>
+              <input className="di" type="date" value={form.data} onChange={e => set('data', e.target.value)} onFocus={e => e.target.style.borderColor=ac} onBlur={e => e.target.style.borderColor=''} />
             </div>
-            {form.temIva && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, color: 'var(--text2)' }}>
-              <span>IVA {ivaPct}%</span><span style={{ fontFamily: 'DM Mono, monospace' }}>+ {eur(ivaValor)}</span>
-            </div>}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, color: 'var(--text)', fontWeight: 600, borderTop: '1px solid var(--border)', paddingTop: 4 }}>
-              <span>Total do documento</span><span style={{ fontFamily: 'DM Mono, monospace' }}>{eur(totalDoc)}</span>
-            </div>
-            {form.temRetencao && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, color: 'var(--red2)' }}>
-              <span>Retenção IRS {retPct}%</span><span style={{ fontFamily: 'DM Mono, monospace' }}>− {eur(retValor)}</span>
-            </div>}
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--green)', fontWeight: 700, borderTop: '1px solid var(--border)', paddingTop: 4 }}>
-              <span>Total a receber</span><span style={{ fontFamily: 'DM Mono, monospace' }}>{eur(totalPago)}</span>
+            <div style={{ flex: 1 }}>
+              <div className="dfl">Estado</div>
+              <div className="estado-grid" style={{ flexDirection: 'column' }}>
+                {['pago','pendente'].map(k => {
+                  const sel = form.estado === k
+                  const c = ESTADO_COLORS[k]
+                  return <button key={k} className="estado-pill" style={sel ? { borderColor: c.border, background: c.bg, color: c.color } : {}} onClick={() => set('estado', k)}><i className={`ti ${k === 'pago' ? 'ti-check' : 'ti-clock'}`} style={{ fontSize: 13, marginRight: 4 }} />{k}</button>
+                })}
+              </div>
             </div>
           </div>
-        )}
-
-        <div className="modal-actions">
-          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
-          <button className="btn-save" style={{ background: 'var(--gold2)' }} onClick={handleSave}>Guardar</button>
+          <div><div className="dfl">Cliente</div><input className="di" type="text" value={form.cliente} onChange={e => set('cliente', e.target.value)} onFocus={e => e.target.style.borderColor=ac} onBlur={e => e.target.style.borderColor=''} /></div>
+          <div><div className="dfl">Descrição</div><input className="di" type="text" value={form.descricao} onChange={e => set('descricao', e.target.value)} onFocus={e => e.target.style.borderColor=ac} onBlur={e => e.target.style.borderColor=''} /></div>
+          <div><div className="dfl">Valor ilíquido (€)</div><input className="di" type="text" inputMode="decimal" value={form.valor} placeholder="0,00" style={{ fontFamily: 'DM Mono, monospace' }} onChange={e => set('valor', e.target.value.replace(/[^0-9.,]/g, ''))} onFocus={e => e.target.style.borderColor=ac} onBlur={e => e.target.style.borderColor=''} /></div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div className="dfl" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={form.temRetencao} onChange={e => set('temRetencao', e.target.checked)} style={{ width: 'auto', margin: 0 }} /> Retenção IRS (%)
+              </div>
+              <input className="di" type="number" value={form.retencao} disabled={!form.temRetencao} onChange={e => set('retencao', e.target.value)} style={{ opacity: form.temRetencao ? 1 : 0.4 }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div className="dfl" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={form.temIva} onChange={e => set('temIva', e.target.checked)} style={{ width: 'auto', margin: 0 }} /> IVA (%)
+              </div>
+              <input className="di" type="number" value={form.iva} disabled={!form.temIva} onChange={e => set('iva', e.target.value)} style={{ opacity: form.temIva ? 1 : 0.4 }} />
+            </div>
+          </div>
+          {valorNum > 0 && (
+            <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 13px', fontSize: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, color: 'var(--text2)' }}><span>Valor ilíquido</span><span style={{ fontFamily: 'DM Mono, monospace' }}>{eur(valorNum)}</span></div>
+              {form.temIva && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, color: 'var(--text2)' }}><span>IVA {ivaPct}%</span><span style={{ fontFamily: 'DM Mono, monospace' }}>+ {eur(ivaValor)}</span></div>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, color: 'var(--text)', fontWeight: 600, borderTop: '1px solid var(--border)', paddingTop: 4 }}><span>Total do documento</span><span style={{ fontFamily: 'DM Mono, monospace' }}>{eur(totalDoc)}</span></div>
+              {form.temRetencao && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, color: 'var(--red2)' }}><span>Retenção IRS {retPct}%</span><span style={{ fontFamily: 'DM Mono, monospace' }}>− {eur(retValor)}</span></div>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--green)', fontWeight: 700, borderTop: '1px solid var(--border)', paddingTop: 4 }}><span>Total a receber</span><span style={{ fontFamily: 'DM Mono, monospace' }}>{eur(totalPago)}</span></div>
+            </div>
+          )}
+        </div>
+        <div className="drawer-foot">
+          <button className="drawer-btn-cancel" onClick={onClose}>Cancelar</button>
+          <button className="drawer-btn-save" style={{ background: ac }} onClick={handleSave}><i className="ti ti-device-floppy" style={{ fontSize: 14, marginRight: 6 }} />Guardar</button>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -742,17 +669,22 @@ function VanessaPage({ data, mes, reload }) {
       )}
 
       {drawer && (
-        <DrawerDespesa
+        <Drawer
           title="Nova despesa — Vanessa"
           ac="var(--gold2)"
-          categories={CATS_VANESSA}
-          mes={mes}
+          fields={[
+            { k: 'data',      l: 'Data',       t: 'date' },
+            { k: 'descricao', l: 'Descrição',  t: 'text', p: 'ex: supermercado, farmácia...' },
+            { k: 'categoria', l: 'Categoria',  t: 'cat',  o: CATS_VANESSA },
+            { k: 'valor',     l: 'Valor (€)',  t: 'money' },
+            { k: 'estado',    l: 'Estado',     t: 'estado', o: ['pago','pendente','confirmado'] },
+          ]}
           onClose={() => setDrawer(false)}
           onSave={saveDesp}
         />
       )}
-      {modal === 'free' && <ModalFreelance onClose={() => setModal(null)} onSave={saveFree} />}
-      {modal === 'rend' && <Modal title="Novo rendimento — Vanessa" ac="var(--gold2)" fields={[{ k: 'tipo', l: 'Tipo', t: 'sel', o: ['salario','avenca','freelancer','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['recebido','pendente'] }]} onClose={() => setModal(null)} onSave={saveRend} />}
+      {modal === 'free' && <DrawerFreelance ac="var(--gold2)" onClose={() => setModal(null)} onSave={saveFree} />}
+      {modal === 'rend' && <Drawer title="Novo rendimento — Vanessa" ac="var(--gold2)" fields={[{ k: 'tipo', l: 'Tipo', t: 'sel', o: ['salario','avenca','freelancer','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['recebido','pendente'] }]} onClose={() => setModal(null)} onSave={saveRend} />}
     </>
   )
 }
@@ -809,8 +741,8 @@ function MaezonaPage({ data, mes, reload }) {
           ]} rows={rend} />
         </>
       )}
-      {modal === true && <Modal title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['condomínio', 'seguros', 'energia', 'água', 'garagem', 'comunicações', 'saúde', 'cuidadoras', 'alimentação', 'animais', 'empregada', 'outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
-      {modal === 'rend' && <Modal title="Novo rendimento — Mãezona" ac="var(--teal2)" fields={[{ k: 'tipo', l: 'Tipo', t: 'sel', o: ['pensão','transferência','IRS','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['recebido','pendente'] }]} onClose={() => setModal(false)} onSave={async f => { await db.insert('maezona_rendimentos', { mes, tipo: f.tipo, entidade: f.entidade, valor: +f.valor || 0, estado: f.estado || 'recebido' }); reload(); setModal(false) }} />}
+      {modal === true && <Drawer title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','seguros','energia','água','garagem','comunicações','saúde','cuidadoras','alimentação','animais','empregada','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
+      {modal === 'rend' && <Drawer title="Novo rendimento — Mãezona" ac="var(--teal2)" fields={[{ k: 'tipo', l: 'Tipo', t: 'sel', o: ['pensão','transferência','IRS','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['recebido','pendente'] }]} onClose={() => setModal(false)} onSave={async f => { await db.insert('maezona_rendimentos', { mes, tipo: f.tipo, entidade: f.entidade, valor: +f.valor || 0, estado: f.estado || 'recebido' }); reload(); setModal(false) }} />}
     </>
   )
 }
@@ -849,8 +781,8 @@ function MiltonPage({ data, mes, reload }) {
         { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
       ]} rows={desp} /></>}
-      {modal === 'conc' && <Modal title="Novo concerto — Milton" ac="var(--violet2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'descricao', l: 'Concerto', t: 'text' }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'nif', l: 'NIF', t: 'text' }, { k: 'localidade', l: 'Localidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'iva', l: 'IVA (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['Done', 'In progress'] }]} onClose={() => setModal(null)} onSave={saveConc} />}
-      {modal === 'desp' && <Modal title="Nova despesa — Milton" ac="var(--violet2)" fields={[{ k: 'categoria', l: 'Categoria', t: 'sel', o: ['habitação','seguros','saúde','financeiro'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('milton_despesas', { mes, categoria: f.categoria || 'outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
+      {modal === 'conc' && <Drawer title="Novo concerto — Milton" ac="var(--violet2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'descricao', l: 'Concerto', t: 'text' }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'nif', l: 'NIF', t: 'text' }, { k: 'localidade', l: 'Localidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'iva', l: 'IVA (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['Done','In progress'] }]} onClose={() => setModal(null)} onSave={saveConc} />}
+      {modal === 'desp' && <Drawer title="Nova despesa — Milton" ac="var(--violet2)" fields={[{ k: 'categoria', l: 'Categoria', t: 'cat', o: ['habitação','seguros','saúde','financeiro'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('milton_despesas', { mes, categoria: f.categoria || 'outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
     </>
   )
 }
@@ -902,8 +834,8 @@ function VillaPage({ data, mes, reload }) {
         { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
       ]} rows={desp} /></>}
-      {modal === 'res' && <Modal title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'entrada', l: 'Data entrada', t: 'date' }, { k: 'saida', l: 'Data saída', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Inquilino', 'Amigos', 'Família'] }, { k: 'inquilino', l: 'Nome / Quem', t: 'text' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo', 'Airbnb', 'Booking', 'Outro'] }, { k: 'valor', l: 'Receita (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['confirmado', 'pendente'] }]} onClose={() => setModal(null)} onSave={saveRes} />}
-      {modal === 'desp' && <Modal title="Novo encargo — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'categoria', l: 'Categoria', t: 'sel', o: ['condomínio','seguros','energia','água','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('villa_despesas', { mes, categoria: f.categoria || 'outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
+      {modal === 'res' && <Drawer title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'entrada', l: 'Data entrada', t: 'date' }, { k: 'saida', l: 'Data saída', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Inquilino','Amigos','Família'] }, { k: 'inquilino', l: 'Nome / Quem', t: 'text' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo','Airbnb','Booking','Outro'] }, { k: 'valor', l: 'Receita (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['confirmado','pendente'] }]} onClose={() => setModal(null)} onSave={saveRes} />}
+      {modal === 'desp' && <Drawer title="Novo encargo — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','seguros','energia','água','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('villa_despesas', { mes, categoria: f.categoria || 'outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
     </>
   )
 }
@@ -949,9 +881,9 @@ function CopaPage({ data, mes, reload }) {
       ]} rows={recMes} /></>}
       {tab === 'res' && <><SecHead label="Resumo por mês 2026" /><Tbl cols={[{ k: 'mes', l: 'Mês', fn: r => mesL(r.mes), n: true }, { k: 'rec', l: 'Aluguel BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'desp', l: 'Despesas BRL', r: true, fn: r => brl(sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl')) }, { k: 'saldo', l: 'Saldo', r: true, fn: r => { const s = r.valor_brl - sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl'); return <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span> } }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={recAnо} /></>}
       {tab === 'tr' && <><SecHead label="Transferências BRL → EUR" onAdd={() => setModal('tr')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'notas', l: 'Referência', n: true }, { k: 'valor_brl', l: 'Enviado BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'valor_eur', l: 'Recebido EUR', r: true, fn: r => eur(r.valor_eur) }, { k: 'taxa', l: 'Taxa real', r: true, fn: r => r.valor_brl ? (r.valor_eur / r.valor_brl).toFixed(4) : '—' }]} rows={tr} /></>}
-      {modal === 'desp' && <Modal title="Nova despesa — Copa Rio" ac="var(--blue2)" fields={[{ k: 'categoria', l: 'Categoria', t: 'sel', o: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('copa_despesas', { mes, categoria: f.categoria || 'outros', descricao: f.descricao, valor_brl: +f.valor_brl || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
-      {modal === 'rec' && <Modal title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost', 'Booking', 'Airbnb', 'Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'number' }, { k: 'taxa', l: 'Taxa câmbio', t: 'number', p: '0.18' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['recebido', 'pendente'] }]} onClose={() => setModal(null)} onSave={saveRec} />}
-      {modal === 'tr' && <Modal title="Nova transferência BRL → EUR" ac="var(--blue2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'valor_brl', l: 'Valor enviado (BRL)', t: 'number' }, { k: 'valor_eur', l: 'Valor recebido (EUR)', t: 'number' }, { k: 'notas', l: 'Referência', t: 'text', p: 'Ex: Jan-Mar 2026' }]} onClose={() => setModal(null)} onSave={saveTr} />}
+      {modal === 'desp' && <Drawer title="Nova despesa — Copa Rio" ac="var(--blue2)" fields={[{ k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('copa_despesas', { mes, categoria: f.categoria || 'outros', descricao: f.descricao, valor_brl: +f.valor_brl || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
+      {modal === 'rec' && <Drawer title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost','Booking','Airbnb','Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'taxa', l: 'Taxa câmbio', t: 'text', p: '0.18' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['recebido','pendente'] }]} onClose={() => setModal(null)} onSave={saveRec} />}
+      {modal === 'tr' && <Drawer title="Nova transferência BRL → EUR" ac="var(--blue2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'valor_brl', l: 'Valor enviado (BRL)', t: 'money' }, { k: 'valor_eur', l: 'Valor recebido (EUR)', t: 'money' }, { k: 'notas', l: 'Referência', t: 'text', p: 'Ex: Jan-Mar 2026' }]} onClose={() => setModal(null)} onSave={saveTr} />}
     </>
   )
 }
