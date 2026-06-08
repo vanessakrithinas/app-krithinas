@@ -10,6 +10,8 @@ const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Ag
 const mesL = m => { const [y, mo] = m.split('-'); return MESES[+mo - 1] + ' ' + y }
 const MESES_DISPONIVEIS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06']
 
+const todayISO = () => new Date().toISOString().slice(0, 10)
+
 // ── nav config ─────────────────────────────────────────────────────────────
 const NAV = [
   { k: 'dash',    label: 'Visão geral', sub: '2026',            initials: 'KR', bg: '#2A1F0A', fg: '#C9A84C', ac: '#C9A84C' },
@@ -53,7 +55,14 @@ const CAT_COLORS = {
   'seguros':       { bg: '#FAF5FF', color: '#7E22CE', border: '#E9D5FF' },
   'transporte':    { bg: '#F0F9FF', color: '#075985', border: '#BAE6FD' },
   'crédito':       { bg: '#FFF1F2', color: '#BE123C', border: '#FECDD3' },
+  'entretenimento':{ bg: '#FFF0F6', color: '#9D174D', border: '#FBCFE8' },
 }
+
+// categorias disponíveis para despesas Vanessa
+const CATS_VANESSA = [
+  'alimentação','casa','filhos','financeiro','pessoal','saúde','transporte',
+  'crédito','entretenimento','outros',
+]
 
 function CatBadge({ cat }) {
   const c = CAT_COLORS[cat] || CAT_COLORS['outros']
@@ -96,7 +105,7 @@ function SecHead({ label, onAdd }) {
 }
 
 function Tbl({ cols, rows, table, onSave }) {
-  const [editing, setEditing] = useState(null) // { rowId, colK }
+  const [editing, setEditing] = useState(null)
   const [val, setVal] = useState('')
 
   const startEdit = (r, c) => {
@@ -214,7 +223,169 @@ function MonthSelector({ mes, onChange }) {
   )
 }
 
-// ── modal ──────────────────────────────────────────────────────────────────
+// ── relógio do topbar ──────────────────────────────────────────────────────
+function TopbarClock() {
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60000)
+    return () => clearInterval(t)
+  }, [])
+  const dias = ['domingo','segunda','terça','quarta','quinta','sexta','sábado']
+  const mesesAbr = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+  const hh = now.getHours().toString().padStart(2,'0')
+  const mm = now.getMinutes().toString().padStart(2,'0')
+  return (
+    <div style={{ textAlign: 'right', lineHeight: 1.3 }}>
+      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--fg)', fontFamily: 'DM Mono, monospace', letterSpacing: '.04em' }}>{hh}:{mm}</div>
+      <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'lowercase' }}>
+        {dias[now.getDay()]} · {now.getDate()} {mesesAbr[now.getMonth()]} {now.getFullYear()}
+      </div>
+    </div>
+  )
+}
+
+// ── drawer despesa ─────────────────────────────────────────────────────────
+function DrawerDespesa({ title, ac, categories, mes, onClose, onSave }) {
+  const [form, setForm] = useState({ data: todayISO(), descricao: '', categoria: '', valor: '', estado: '' })
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleSave = () => {
+    if (!form.descricao || !form.categoria || !form.valor || !form.estado) return
+    const valorNum = parseFloat(form.valor.replace(',', '.'))
+    if (isNaN(valorNum)) return
+    onSave({ ...form, valor: valorNum })
+  }
+
+  const estadoBtns = [
+    { k: 'pago',       label: 'pago',       icon: 'ti-check'    },
+    { k: 'pendente',   label: 'pendente',   icon: 'ti-clock'    },
+    { k: 'confirmado', label: 'confirmado', icon: 'ti-calendar' },
+  ]
+
+  const estadoColors = {
+    pago:       { border: '#3B6D11', bg: '#EAF3DE', color: '#3B6D11' },
+    pendente:   { border: '#854F0B', bg: '#FAEEDA', color: '#854F0B' },
+    confirmado: { border: '#185FA5', bg: '#E6F1FB', color: '#185FA5' },
+  }
+
+  // drawer CSS via style tag injected once
+  return (
+    <>
+      <style>{`
+        .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;animation:fadeIn .2s}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        .drawer-panel{position:fixed;top:0;right:0;bottom:0;width:min(380px,100vw);background:var(--bg);z-index:201;display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,.25);animation:slideIn .28s cubic-bezier(.4,0,.2,1)}
+        @keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+        .drawer-hd{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--border)}
+        .drawer-hd-title{font-size:15px;font-weight:600;color:var(--text)}
+        .drawer-close{background:none;border:1px solid var(--border);border-radius:50%;width:30px;height:30px;cursor:pointer;color:var(--text2);font-size:16px;display:flex;align-items:center;justify-content:center;line-height:1}
+        .drawer-body{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:16px}
+        .drawer-field-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:6px;font-weight:500}
+        .drawer-input{width:100%;box-sizing:border-box;font-size:14px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);outline:none;font-family:inherit;transition:border-color .15s}
+        .drawer-input:focus{border-color:${ac}}
+        .cat-pill-grid{display:flex;flex-wrap:wrap;gap:7px}
+        .cat-pill{padding:5px 13px;border-radius:20px;font-size:12px;cursor:pointer;border:1.5px solid transparent;transition:all .15s;font-weight:400;background:none}
+        .cat-pill.sel{border-width:2px;font-weight:600}
+        .estado-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+        .estado-pill{padding:9px 4px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text2);text-align:center;transition:all .15s;font-family:inherit}
+        .drawer-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px}
+        .drawer-btn-cancel{flex:1;padding:11px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit}
+        .drawer-btn-save{flex:2;padding:11px;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:${ac}}
+        .drawer-btn-save:disabled{opacity:.4;cursor:not-allowed}
+      `}</style>
+      <div className="drawer-overlay" onClick={e => e.target === e.currentTarget && onClose()} />
+      <div className="drawer-panel">
+        <div className="drawer-hd">
+          <span className="drawer-hd-title">{title}</span>
+          <button className="drawer-close" onClick={onClose}>×</button>
+        </div>
+        <div className="drawer-body">
+
+          <div>
+            <div className="drawer-field-label">Data</div>
+            <input className="drawer-input" type="date" value={form.data} onChange={e => set('data', e.target.value)} />
+          </div>
+
+          <div>
+            <div className="drawer-field-label">Descrição</div>
+            <input className="drawer-input" type="text" value={form.descricao} placeholder="ex: supermercado, farmácia..." onChange={e => set('descricao', e.target.value)} />
+          </div>
+
+          <div>
+            <div className="drawer-field-label">Categoria</div>
+            <div className="cat-pill-grid">
+              {categories.map(cat => {
+                const c = CAT_COLORS[cat] || CAT_COLORS['outros']
+                const sel = form.categoria === cat
+                return (
+                  <button
+                    key={cat}
+                    className={`cat-pill${sel ? ' sel' : ''}`}
+                    style={{
+                      background: c.bg,
+                      color: c.color,
+                      borderColor: sel ? c.border : c.bg,
+                    }}
+                    onClick={() => set('categoria', cat)}
+                  >{cat}</button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="drawer-field-label">Valor (€)</div>
+            <input
+              className="drawer-input"
+              type="text"
+              inputMode="decimal"
+              value={form.valor}
+              placeholder="0,00"
+              onChange={e => {
+                const v = e.target.value.replace(/[^0-9.,]/g, '')
+                set('valor', v)
+              }}
+            />
+          </div>
+
+          <div>
+            <div className="drawer-field-label">Estado</div>
+            <div className="estado-grid">
+              {estadoBtns.map(b => {
+                const sel = form.estado === b.k
+                const c = estadoColors[b.k]
+                return (
+                  <button
+                    key={b.k}
+                    className="estado-pill"
+                    style={sel ? { borderColor: c.border, background: c.bg, color: c.color } : {}}
+                    onClick={() => set('estado', b.k)}
+                  >
+                    <i className={`ti ${b.icon}`} style={{ fontSize: 13, marginRight: 4 }} />
+                    {b.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+        </div>
+        <div className="drawer-foot">
+          <button className="drawer-btn-cancel" onClick={onClose}>Cancelar</button>
+          <button
+            className="drawer-btn-save"
+            disabled={!form.descricao || !form.categoria || !form.valor || !form.estado}
+            onClick={handleSave}
+          >
+            <i className="ti ti-device-floppy" style={{ fontSize: 14, marginRight: 6 }} />Guardar
+          </button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ── modal genérico (mantido para todos os outros casos) ────────────────────
 function Modal({ title, ac, fields, onClose, onSave }) {
   const [form, setForm] = useState({})
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -340,7 +511,6 @@ function ModalFreelance({ onClose, onSave }) {
           </div>
         </div>
 
-        {/* resumo calculado */}
         {valorNum > 0 && (
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 13px', marginBottom: 13, fontSize: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, color: 'var(--text2)' }}>
@@ -429,6 +599,7 @@ function Dashboard({ data, mes }) {
 
 function VanessaPage({ data, mes, reload }) {
   const [tab, setTab] = useState('desp')
+  const [drawer, setDrawer] = useState(false)
   const [modal, setModal] = useState(null)
   const [catFiltro, setCatFiltro] = useState('todas')
 
@@ -437,7 +608,6 @@ function VanessaPage({ data, mes, reload }) {
   const free = data.vanessa_freelancers.filter(x => x.data && x.data.startsWith(mes))
 
   const salario = sum(rend.filter(x => x.tipo === 'Salário' || x.entidade === 'Bauer' || x.tipo === 'salario'), 'valor')
-  const outrosRend = sum(rend.filter(x => x.tipo !== 'Salário' && x.entidade !== 'Bauer' && x.tipo !== 'salario'), 'valor')
   const tf = sum(free, 'valor')
   const td = sum(desp, 'valor')
   const tr = sum(rend, 'valor')
@@ -445,9 +615,26 @@ function VanessaPage({ data, mes, reload }) {
   const cats = ['todas', ...Array.from(new Set(desp.map(x => x.categoria).filter(Boolean))).sort()]
   const despFiltradas = catFiltro === 'todas' ? desp : desp.filter(x => x.categoria === catFiltro)
 
-  const saves = {
-    desp: async f => { await db.insert('vanessa_despesas', { mes, categoria: f.categoria || 'outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(null) },
-    free: async f => { await db.insert('vanessa_freelancers', { data: f.data, cliente: f.cliente, descricao: f.descricao, valor: +f.valor || 0, retencao: +f.retencao || 0, iva: +f.iva || 0, estado: f.estado || 'pago' }); reload(); setModal(null) },
+  const saveDesp = async f => {
+    await db.insert('vanessa_despesas', {
+      mes,
+      categoria: f.categoria || 'outros',
+      descricao: f.descricao,
+      valor: f.valor,
+      estado: f.estado || 'pago',
+    })
+    reload()
+    setDrawer(false)
+  }
+
+  const saveFree = async f => {
+    await db.insert('vanessa_freelancers', {
+      data: f.data, cliente: f.cliente, descricao: f.descricao,
+      valor: +f.valor || 0, retencao: +f.retencao || 0,
+      iva: +f.iva || 0, estado: f.estado || 'pago',
+    })
+    reload()
+    setModal(null)
   }
 
   return (
@@ -478,10 +665,10 @@ function VanessaPage({ data, mes, reload }) {
               )
             })}
           </div>
-          <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal('desp')} />
+          <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setDrawer(true)} />
           <Tbl table="vanessa_despesas" onSave={reload} cols={[
             { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
-            { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['casa','filhos','alimentação','transporte','saúde','entretenimento','pessoal','financeiro','crédito'] },
+            { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: CATS_VANESSA },
             { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
             { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
           ]} rows={despFiltradas} />
@@ -512,8 +699,18 @@ function VanessaPage({ data, mes, reload }) {
           ]} rows={free} />
         </>
       )}
-      {modal === 'desp' && <Modal title="Nova despesa — Vanessa" ac="var(--gold2)" fields={[{ k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'categoria', l: 'Categoria', t: 'sel', o: ['casa', 'filhos', 'alimentação', 'transporte', 'saúde', 'entretenimento', 'pessoal', 'financeiro', 'crédito'] }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['pago', 'pendente'] }]} onClose={() => setModal(null)} onSave={saves.desp} />}
-      {modal === 'free' && <ModalFreelance onClose={() => setModal(null)} onSave={saves.free} />}
+
+      {drawer && (
+        <DrawerDespesa
+          title="Nova despesa — Vanessa"
+          ac="var(--gold2)"
+          categories={CATS_VANESSA}
+          mes={mes}
+          onClose={() => setDrawer(false)}
+          onSave={saveDesp}
+        />
+      )}
+      {modal === 'free' && <ModalFreelance onClose={() => setModal(null)} onSave={saveFree} />}
     </>
   )
 }
@@ -776,7 +973,6 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* overlay mobile */}
       <div
         className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
         onClick={() => setSidebarOpen(false)}
@@ -820,7 +1016,8 @@ export default function App() {
               <div className="topbar-title">{TITLES[page]}</div>
             </div>
           </div>
-          <div className="topbar-right">
+          <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <TopbarClock />
             <MonthSelector mes={mes} onChange={m => navigate(null, m)} />
           </div>
         </header>
