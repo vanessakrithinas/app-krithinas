@@ -812,6 +812,238 @@ function MiltonPage({ data, mes, reload, tab, setTab }) {
   )
 }
 
+// ── calendário anual Villa ─────────────────────────────────────────────────
+const VILLA_TIPOS = {
+  'Inquilino':  { cor: '#2E7D32', fg: '#fff',    label: 'Inquilino' },
+  'Amigos':     { cor: '#7B3FA0', fg: '#fff',    label: 'Amigos'    },
+  'Família':    { cor: '#1565C0', fg: '#fff',    label: 'Família'   },
+  'Jonhy':      { cor: '#E65100', fg: '#fff',    label: 'Jonhy'     },
+}
+
+function CalendarioVilla({ reservas }) {
+  const ano = 2026
+  const mesesNomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  const diasSemana = ['D','S','T','Q','Q','S','S']
+
+  // para cada dia do ano, determinar que reserva se aplica
+  const getDayInfo = (mes0, dia) => {
+    const dateStr = `${ano}-${String(mes0+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`
+    for (const r of reservas) {
+      if (!r.entrada || !r.saida) continue
+      if (dateStr >= r.entrada && dateStr < r.saida) {
+        // Jonhy: identificado pelo nome no tipo ou no campo inquilino
+        const isJonhy = (r.inquilino || '').toLowerCase().includes('jonh') || (r.tipo || '').toLowerCase().includes('jonh')
+        const tipo = isJonhy ? 'Jonhy' : (r.tipo || 'Inquilino')
+        return { tipo, r }
+      }
+    }
+    return null
+  }
+
+  const cellW = 28
+  const cellH = 26
+  const labelW = 90
+  const headerH = 28
+  const rowH = cellH + 2
+  const maxDias = 31
+  const svgW = labelW + maxDias * cellW + 2
+  const svgH = headerH + 12 * rowH + 48
+
+  // cabeçalho dias da semana: usar Jan 2026 como referência (1 Jan = Quinta)
+  // renderizar número do dia + cor de fundo
+  return (
+    <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
+      <svg width={svgW} height={svgH} style={{ fontFamily: 'DM Sans, sans-serif', display: 'block' }}>
+        {/* legenda */}
+        {Object.entries(VILLA_TIPOS).map(([k, v], i) => (
+          <g key={k} transform={`translate(${labelW + i * 110}, ${svgH - 32})`}>
+            <rect width={14} height={14} rx={3} fill={v.cor} />
+            <text x={18} y={11} fontSize={11} fill="var(--text2)">{v.label}</text>
+          </g>
+        ))}
+        <g transform={`translate(${labelW + Object.keys(VILLA_TIPOS).length * 110}, ${svgH - 32})`}>
+          <rect width={14} height={14} rx={3} fill="var(--bg2)" stroke="var(--border)" strokeWidth={1} />
+          <text x={18} y={11} fontSize={11} fill="var(--text2)">Disponível</text>
+        </g>
+
+        {mesesNomes.map((nomeMes, mes0) => {
+          const diasNoMes = new Date(ano, mes0 + 1, 0).getDate()
+          const y = headerH + mes0 * rowH
+
+          return (
+            <g key={mes0}>
+              {/* nome do mês */}
+              <text x={labelW - 8} y={y + cellH / 2 + 4} fontSize={11} fontWeight={600}
+                textAnchor="end" fill="var(--text2)" letterSpacing=".03em">
+                {nomeMes.toUpperCase()}
+              </text>
+
+              {Array.from({ length: maxDias }, (_, d) => {
+                const dia = d + 1
+                if (dia > diasNoMes) {
+                  // célula vazia fora do mês
+                  return (
+                    <rect key={d} x={labelW + d * cellW} y={y} width={cellW - 1} height={cellH}
+                      fill="transparent" />
+                  )
+                }
+                const info = getDayInfo(mes0, dia)
+                const tipo = info ? info.tipo : null
+                const cfg = tipo ? VILLA_TIPOS[tipo] : null
+                const bg = cfg ? cfg.cor : 'var(--bg2)'
+                const fg2 = cfg ? cfg.fg : 'var(--text2)'
+                const dateStr = `${ano}-${String(mes0+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`
+                const dow = new Date(dateStr).getDay()
+                const isWeekend = dow === 0 || dow === 6
+                const isToday = dateStr === new Date().toISOString().slice(0,10)
+
+                return (
+                  <g key={d}>
+                    <rect x={labelW + d * cellW} y={y} width={cellW - 1} height={cellH} rx={2}
+                      fill={cfg ? bg : (isWeekend ? 'var(--bg2)' : 'var(--bg)')}
+                      stroke={isToday ? '#F59E0B' : cfg ? 'transparent' : 'var(--border)'}
+                      strokeWidth={isToday ? 2 : 0.5}
+                    />
+                    <text x={labelW + d * cellW + (cellW - 1) / 2} y={y + cellH / 2 + 4}
+                      fontSize={10} textAnchor="middle"
+                      fill={cfg ? fg2 : isWeekend ? 'var(--text2)' : 'var(--text3, #aaa)'}
+                      fontWeight={isToday ? 700 : 400}>
+                      {dia}
+                    </text>
+                  </g>
+                )
+              })}
+            </g>
+          )
+        })}
+
+        {/* cabeçalho com dia da semana de cada coluna (baseado em Jan 2026) */}
+        {Array.from({ length: maxDias }, (_, d) => {
+          const refDate = new Date(ano, 0, d + 1)
+          const dow = refDate.getDay()
+          const isWeekend = dow === 0 || dow === 6
+          return (
+            <text key={d} x={labelW + d * cellW + (cellW - 1) / 2} y={headerH - 6}
+              fontSize={9} textAnchor="middle"
+              fill={isWeekend ? 'var(--text)' : 'var(--text2)'}
+              fontWeight={isWeekend ? 600 : 400}>
+              {diasSemana[dow]}
+            </text>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
+// ── calendário anual Copa ─────────────────────────────────────────────────
+const COPA_CANAIS = {
+  'RioHost': { cor: '#1565C0', fg: '#fff', label: 'RioHost' },
+  'Booking':  { cor: '#2E7D32', fg: '#fff', label: 'Booking' },
+  'Airbnb':   { cor: '#C2185B', fg: '#fff', label: 'Airbnb'  },
+  'Directo':  { cor: '#E65100', fg: '#fff', label: 'Directo' },
+}
+
+function CalendarioCopa({ receitas }) {
+  const ano = 2026
+  const mesesNomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  const diasSemana = ['D','S','T','Q','Q','S','S']
+
+  // Copa: receitas têm só `mes` (YYYY-MM), sem datas de check-in/check-out
+  // colorir o mês inteiro com a cor do canal
+  const getMesInfo = (mes0) => {
+    const mesStr = `${ano}-${String(mes0+1).padStart(2,'0')}`
+    const rec = receitas.filter(r => r.mes === mesStr)
+    if (!rec.length) return null
+    // prioridade: primeiro registo com canal conhecido
+    return rec[0]
+  }
+
+  const cellW = 28
+  const cellH = 26
+  const labelW = 90
+  const headerH = 28
+  const rowH = cellH + 2
+  const maxDias = 31
+  const svgW = labelW + maxDias * cellW + 2
+  const svgH = headerH + 12 * rowH + 48
+
+  return (
+    <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
+      <svg width={svgW} height={svgH} style={{ fontFamily: 'DM Sans, sans-serif', display: 'block' }}>
+        {/* legenda */}
+        {Object.entries(COPA_CANAIS).map(([k, v], i) => (
+          <g key={k} transform={`translate(${labelW + i * 100}, ${svgH - 32})`}>
+            <rect width={14} height={14} rx={3} fill={v.cor} />
+            <text x={18} y={11} fontSize={11} fill="var(--text2)">{v.label}</text>
+          </g>
+        ))}
+        <g transform={`translate(${labelW + Object.keys(COPA_CANAIS).length * 100}, ${svgH - 32})`}>
+          <rect width={14} height={14} rx={3} fill="var(--bg2)" stroke="var(--border)" strokeWidth={1} />
+          <text x={18} y={11} fontSize={11} fill="var(--text2)">Disponível</text>
+        </g>
+
+        {mesesNomes.map((nomeMes, mes0) => {
+          const diasNoMes = new Date(ano, mes0 + 1, 0).getDate()
+          const y = headerH + mes0 * rowH
+          const recInfo = getMesInfo(mes0)
+          const canal = recInfo ? recInfo.canal : null
+          const cfg = canal ? COPA_CANAIS[canal] : null
+
+          return (
+            <g key={mes0}>
+              <text x={labelW - 8} y={y + cellH / 2 + 4} fontSize={11} fontWeight={600}
+                textAnchor="end" fill="var(--text2)" letterSpacing=".03em">
+                {nomeMes.toUpperCase()}
+              </text>
+
+              {Array.from({ length: maxDias }, (_, d) => {
+                const dia = d + 1
+                if (dia > diasNoMes) return <rect key={d} x={labelW + d * cellW} y={y} width={cellW - 1} height={cellH} fill="transparent" />
+                const dateStr = `${ano}-${String(mes0+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`
+                const dow = new Date(dateStr).getDay()
+                const isWeekend = dow === 0 || dow === 6
+                const isToday = dateStr === new Date().toISOString().slice(0,10)
+                const bg = cfg ? cfg.cor : (isWeekend ? 'var(--bg2)' : 'var(--bg)')
+                const fg2 = cfg ? cfg.fg : isWeekend ? 'var(--text2)' : 'var(--text3, #aaa)'
+
+                return (
+                  <g key={d}>
+                    <rect x={labelW + d * cellW} y={y} width={cellW - 1} height={cellH} rx={2}
+                      fill={bg}
+                      stroke={isToday ? '#F59E0B' : cfg ? 'transparent' : 'var(--border)'}
+                      strokeWidth={isToday ? 2 : 0.5}
+                    />
+                    <text x={labelW + d * cellW + (cellW - 1) / 2} y={y + cellH / 2 + 4}
+                      fontSize={10} textAnchor="middle" fill={fg2}
+                      fontWeight={isToday ? 700 : 400}>
+                      {dia}
+                    </text>
+                  </g>
+                )
+              })}
+            </g>
+          )
+        })}
+
+        {Array.from({ length: maxDias }, (_, d) => {
+          const refDate = new Date(ano, 0, d + 1)
+          const dow = refDate.getDay()
+          const isWeekend = dow === 0 || dow === 6
+          return (
+            <text key={d} x={labelW + d * cellW + (cellW - 1) / 2} y={headerH - 6}
+              fontSize={9} textAnchor="middle"
+              fill={isWeekend ? 'var(--text)' : 'var(--text2)'}
+              fontWeight={isWeekend ? 600 : 400}>
+              {diasSemana[dow]}
+            </text>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
 function VillaPage({ data, mes, reload, tab, setTab }) {
   const [modal, setModal] = useState(null)
   const resAnо = data.villa_reservas
@@ -833,7 +1065,8 @@ function VillaPage({ data, mes, reload, tab, setTab }) {
         <StatCard label="Noites alugadas" value={`${noitesAnо} noites`} sub="2026" ac="var(--green2)" />
       </div>
       <div className="info-strip teal"><i className="ti ti-info-circle" /> Agosto: 650€/sem · 85€/dia &nbsp;|&nbsp; Outros meses: 600€/sem · 80€/dia</div>
-      <Tabs items={[{ k: 'res', l: 'Calendário & Reservas' }, { k: 'all', l: 'Todas as Reservas' }, { k: 'desp', l: 'Encargos Fixos' }]} active={tab} onChange={setTab} />
+      <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'res', l: 'Reservas mês' }, { k: 'all', l: 'Todas as Reservas' }, { k: 'desp', l: 'Encargos Fixos' }]} active={tab} onChange={setTab} />
+      {tab === 'cal' && <><SecHead label="Calendário de ocupação 2026" onAdd={() => setModal('res')} /><CalendarioVilla reservas={resAnо} /></>}
       {tab === 'res' && <><SecHead label={`Reservas — ${mesL(mes)}`} onAdd={() => setModal('res')} /><Tbl table="villa_reservas" onSave={reload} cols={[
         { k: 'entrada', l: 'Check-in', edit: 'date' },
         { k: 'saida', l: 'Check-out', edit: 'date' },
@@ -894,7 +1127,8 @@ function CopaPage({ data, mes, reload, tab, setTab }) {
         <StatCard label="Transferido PT" value={eur(sum(tr, 'valor_eur'))} sub={`${tr.length} transf.`} ac="var(--blue2)" />
       </div>
       <div className="info-strip blue"><i className="ti ti-currency-real" /> Valores em BRL · Taxa referência: 1 BRL ≈ 0,18 EUR · Câmbio real por transferência</div>
-      <Tabs items={[{ k: 'desp', l: 'Despesas' }, { k: 'rec', l: 'Receitas' }, { k: 'res', l: 'Resumo Ano' }, { k: 'tr', l: 'Transf. PT' }]} active={tab} onChange={setTab} />
+      <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'desp', l: 'Despesas' }, { k: 'rec', l: 'Receitas' }, { k: 'res', l: 'Resumo Ano' }, { k: 'tr', l: 'Transf. PT' }]} active={tab} onChange={setTab} />
+      {tab === 'cal' && <><SecHead label="Calendário de ocupação 2026" onAdd={() => setModal('rec')} /><CalendarioCopa receitas={recAnо} /></>}
       {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal('desp')} /><Tbl table="copa_despesas" onSave={reload} cols={[
         { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] },
         { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
@@ -922,7 +1156,7 @@ function CopaPage({ data, mes, reload, tab, setTab }) {
 // ══════════════════════════════════════════════════════════════════════════
 const TABLES = ['vanessa_rendimentos','vanessa_despesas','vanessa_freelancers','maezona_despesas','maezona_rendimentos','milton_despesas','milton_concertos','villa_reservas','copa_receitas','copa_despesas','copa_transferencias']
 
-const PAGE_DEFAULT_TABS = { vanessa: 'desp', maezona: 'desp', milton: 'conc', villa: 'res', copa: 'desp' }
+const PAGE_DEFAULT_TABS = { vanessa: 'desp', maezona: 'desp', milton: 'conc', villa: 'cal', copa: 'desp' }
 
 export default function App() {
   const parseHash = () => {
@@ -946,8 +1180,8 @@ export default function App() {
   const [vanessaTab, setVanessaTab] = useState(() => getInitialTab('vanessa', ['desp','rend','free']))
   const [maezonaTab, setMaezonaTab] = useState(() => getInitialTab('maezona', ['desp','rend']))
   const [miltonTab,  setMiltonTab]  = useState(() => getInitialTab('milton',  ['conc','desp']))
-  const [villaTab,   setVillaTab]   = useState(() => getInitialTab('villa',   ['res','all','desp']))
-  const [copaTab,    setCopaTab]    = useState(() => getInitialTab('copa',    ['desp','rec','res','tr']))
+  const [villaTab,   setVillaTab]   = useState(() => getInitialTab('villa',   ['cal','res','all','desp']))
+  const [copaTab,    setCopaTab]    = useState(() => getInitialTab('copa',    ['cal','desp','rec','res','tr']))
 
   // wrapper para setTab que também actualiza o hash
   const makeSetTab = (pageKey, setter) => (t) => {
