@@ -107,6 +107,7 @@ function SecHead({ label, onAdd }) {
 function Tbl({ cols, rows, table, onSave }) {
   const [editing, setEditing] = useState(null)
   const [val, setVal] = useState('')
+  const [confirming, setConfirming] = useState(null)
 
   const startEdit = (r, c) => {
     if (!c.edit || !table) return
@@ -122,61 +123,84 @@ function Tbl({ cols, rows, table, onSave }) {
     onSave && onSave()
   }
 
+  const handleDelete = async (r) => {
+    await db.remove(table, r.id)
+    setConfirming(null)
+    onSave && onSave()
+  }
+
   if (!rows.length) return <div className="empty">Sem registos ainda</div>
 
   return (
     <div className="table-wrap">
       <table>
-        <thead><tr>{cols.map(c => <th key={c.k} className={c.r ? 'r' : ''}>{c.l}</th>)}</tr></thead>
+        <thead><tr>
+          {cols.map(c => <th key={c.k} className={c.r ? 'r' : ''}>{c.l}</th>)}
+          {table && <th style={{ width: 36 }} />}
+        </tr></thead>
         <tbody>
-          {rows.map((r, i) => (
-            <tr key={r.id || i}>
-              {cols.map(c => {
-                const isEditing = editing && editing.rowId === r.id && editing.colK === c.k
-                const editable = !!c.edit && !!table
-
-                if (isEditing) {
+          {rows.map((r, i) => {
+            const isConfirming = confirming === (r.id ?? i)
+            if (isConfirming) {
+              return (
+                <tr key={r.id ?? i} style={{ background: '#FEF2F2' }}>
+                  <td colSpan={cols.length} style={{ padding: '10px 13px', fontSize: 12.5, color: 'var(--red2)' }}>
+                    Apagar este registo? Esta acção é irreversível.
+                  </td>
+                  <td style={{ whiteSpace: 'nowrap', padding: '10px 10px 10px 0', textAlign: 'right' }}>
+                    <button onClick={() => handleDelete(r)} style={{ background: '#A32D2D', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', marginRight: 4 }}>Sim</button>
+                    <button onClick={() => setConfirming(null)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: 'var(--text2)' }}>Não</button>
+                  </td>
+                </tr>
+              )
+            }
+            return (
+              <tr key={r.id ?? i}
+                className="tbl-row"
+                onMouseEnter={e => { const b = e.currentTarget.querySelector('.del-btn'); if (b) b.style.opacity = '1' }}
+                onMouseLeave={e => { const b = e.currentTarget.querySelector('.del-btn'); if (b) b.style.opacity = '0' }}
+              >
+                {cols.map(c => {
+                  const isEditing = editing && editing.rowId === r.id && editing.colK === c.k
+                  const editable = !!c.edit && !!table
+                  if (isEditing) {
+                    return (
+                      <td key={c.k} className={c.r ? 'r val' : c.n ? 'name' : ''} style={{ padding: 0 }}>
+                        {c.edit === 'select'
+                          ? <select autoFocus value={val} onChange={e => setVal(e.target.value)} onBlur={() => commitEdit(r, c)}
+                              style={{ width: '100%', border: 'none', background: 'var(--bg2)', padding: '10px 13px', fontSize: 12.5, fontFamily: 'DM Sans, sans-serif', color: 'var(--text)', outline: '2px solid var(--gold2)', borderRadius: 0 }}>
+                              {c.options.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          : <input autoFocus type={c.edit === 'number' ? 'number' : c.edit === 'date' ? 'date' : 'text'} value={val}
+                              onChange={e => setVal(e.target.value)} onBlur={() => commitEdit(r, c)}
+                              onKeyDown={e => { if (e.key === 'Enter') commitEdit(r, c); if (e.key === 'Escape') setEditing(null) }}
+                              style={{ width: '100%', border: 'none', background: 'var(--bg2)', padding: '10px 13px', fontSize: 12.5, fontFamily: 'DM Mono, monospace', color: 'var(--text)', outline: '2px solid var(--gold2)', borderRadius: 0 }} />
+                        }
+                      </td>
+                    )
+                  }
                   return (
-                    <td key={c.k} className={c.r ? 'r val' : c.n ? 'name' : ''} style={{ padding: 0 }}>
-                      {c.edit === 'select'
-                        ? <select
-                            autoFocus
-                            value={val}
-                            onChange={e => setVal(e.target.value)}
-                            onBlur={() => commitEdit(r, c)}
-                            style={{ width: '100%', border: 'none', background: 'var(--bg2)', padding: '10px 13px', fontSize: 12.5, fontFamily: 'DM Sans, sans-serif', color: 'var(--text)', outline: '2px solid var(--gold2)', borderRadius: 0 }}
-                          >
-                            {c.options.map(o => <option key={o} value={o}>{o}</option>)}
-                          </select>
-                        : <input
-                            autoFocus
-                            type={c.edit === 'number' ? 'number' : c.edit === 'date' ? 'date' : 'text'}
-                            value={val}
-                            onChange={e => setVal(e.target.value)}
-                            onBlur={() => commitEdit(r, c)}
-                            onKeyDown={e => { if (e.key === 'Enter') commitEdit(r, c); if (e.key === 'Escape') setEditing(null) }}
-                            style={{ width: '100%', border: 'none', background: 'var(--bg2)', padding: '10px 13px', fontSize: 12.5, fontFamily: 'DM Mono, monospace', color: 'var(--text)', outline: '2px solid var(--gold2)', borderRadius: 0 }}
-                          />
-                      }
+                    <td key={c.k} className={c.r ? 'r val' : c.n ? 'name' : ''}
+                      onClick={() => startEdit(r, c)}
+                      style={editable ? { cursor: 'text', transition: 'background .1s' } : {}}
+                      onMouseEnter={e => { if (editable) e.currentTarget.style.background = 'var(--bg2)' }}
+                      onMouseLeave={e => { if (editable) e.currentTarget.style.background = '' }}>
+                      {c.fn ? c.fn(r) : r[c.k] || '—'}
                     </td>
                   )
-                }
-
-                return (
-                  <td
-                    key={c.k}
-                    className={c.r ? 'r val' : c.n ? 'name' : ''}
-                    onClick={() => startEdit(r, c)}
-                    style={editable ? { cursor: 'text', transition: 'background .1s' } : {}}
-                    onMouseEnter={e => { if (editable) e.currentTarget.style.background = 'var(--bg2)' }}
-                    onMouseLeave={e => { if (editable) e.currentTarget.style.background = '' }}
-                  >
-                    {c.fn ? c.fn(r) : r[c.k] || '—'}
+                })}
+                {table && (
+                  <td style={{ width: 36, textAlign: 'center', padding: '0 4px' }}>
+                    <button className="del-btn" onClick={() => setConfirming(r.id ?? i)}
+                      style={{ opacity: 0, background: 'none', border: 'none', cursor: 'pointer', color: '#A32D2D', fontSize: 15, padding: '4px 6px', borderRadius: 6, transition: 'opacity .15s, background .15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#FEF2F2'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    ><i className="ti ti-trash" /></button>
                   </td>
-                )
-              })}
-            </tr>
-          ))}
+                )}
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
