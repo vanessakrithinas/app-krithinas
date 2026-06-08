@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from './supabase.js'
 
 // ── utils ──────────────────────────────────────────────────────────────────
@@ -201,24 +201,56 @@ function Loading() {
 
 // ── selector de mês ────────────────────────────────────────────────────────
 function MonthSelector({ mes, onChange }) {
-  const idx = MESES_DISPONIVEIS.indexOf(mes)
-  const prev = () => idx > 0 && onChange(MESES_DISPONIVEIS[idx - 1])
-  const next = () => idx < MESES_DISPONIVEIS.length - 1 && onChange(MESES_DISPONIVEIS[idx + 1])
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+    <div ref={ref} style={{ position: 'relative' }}>
       <button
-        onClick={prev}
-        disabled={idx === 0}
-        style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'not-allowed' : 'pointer', opacity: idx === 0 ? 0.3 : 1, color: 'var(--fg)', padding: '4px 6px', fontSize: 14 }}
-      >‹</button>
-      <span className="month-pill">
-        <i className="ti ti-calendar" style={{ fontSize: 12, verticalAlign: -1 }} /> {mesL(mes)}
-      </span>
-      <button
-        onClick={next}
-        disabled={idx === MESES_DISPONIVEIS.length - 1}
-        style={{ background: 'none', border: 'none', cursor: idx === MESES_DISPONIVEIS.length - 1 ? 'not-allowed' : 'pointer', opacity: idx === MESES_DISPONIVEIS.length - 1 ? 0.3 : 1, color: 'var(--fg)', padding: '4px 6px', fontSize: 14 }}
-      >›</button>
+        onClick={() => setOpen(o => !o)}
+        className="month-pill"
+        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, border: 'none', background: 'none', padding: 0 }}
+      >
+        <i className="ti ti-calendar" style={{ fontSize: 12, verticalAlign: -1 }} />
+        {mesL(mes)}
+        <i className="ti ti-chevron-down" style={{ fontSize: 11, opacity: 0.6, transition: 'transform .2s', transform: open ? 'rotate(180deg)' : 'none' }} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+          background: 'var(--bg)', border: '1px solid var(--border)',
+          borderRadius: 10, padding: '6px 0', zIndex: 300,
+          minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,.18)',
+        }}>
+          {MESES_DISPONIVEIS.map(m => {
+            const active = m === mes
+            return (
+              <button
+                key={m}
+                onClick={() => { onChange(m); setOpen(false) }}
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left',
+                  padding: '8px 16px', background: active ? 'var(--bg2)' : 'none',
+                  border: 'none', cursor: 'pointer', fontSize: 13,
+                  color: active ? 'var(--gold2)' : 'var(--text)',
+                  fontWeight: active ? 600 : 400,
+                  fontFamily: 'inherit',
+                }}
+              >
+                {active && <i className="ti ti-point-filled" style={{ fontSize: 10, marginRight: 6, verticalAlign: 1 }} />}
+                {!active && <span style={{ display: 'inline-block', width: 16 }} />}
+                {mesL(m)}
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -637,6 +669,15 @@ function VanessaPage({ data, mes, reload }) {
     setModal(null)
   }
 
+  const saveRend = async f => {
+    await db.insert('vanessa_rendimentos', {
+      mes, tipo: f.tipo, entidade: f.entidade,
+      valor: +f.valor || 0, estado: f.estado || 'recebido',
+    })
+    reload()
+    setModal(null)
+  }
+
   return (
     <>
       <div className="stat-grid">
@@ -676,7 +717,7 @@ function VanessaPage({ data, mes, reload }) {
       )}
       {tab === 'rend' && (
         <>
-          <SecHead label={`Rendimentos — ${mesL(mes)}`} />
+          <SecHead label={`Rendimentos — ${mesL(mes)}`} onAdd={() => setModal('rend')} />
           <Tbl table="vanessa_rendimentos" onSave={reload} cols={[
             { k: 'tipo', l: 'Tipo', n: true, edit: 'text' },
             { k: 'entidade', l: 'Entidade', fn: r => r.entidade || '—', edit: 'text' },
@@ -711,6 +752,7 @@ function VanessaPage({ data, mes, reload }) {
         />
       )}
       {modal === 'free' && <ModalFreelance onClose={() => setModal(null)} onSave={saveFree} />}
+      {modal === 'rend' && <Modal title="Novo rendimento — Vanessa" ac="var(--gold2)" fields={[{ k: 'tipo', l: 'Tipo', t: 'sel', o: ['salario','avenca','freelancer','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'number' }, { k: 'estado', l: 'Estado', t: 'sel', o: ['recebido','pendente'] }]} onClose={() => setModal(null)} onSave={saveRend} />}
     </>
   )
 }
