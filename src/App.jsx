@@ -532,7 +532,7 @@ function Dashboard({ data, mes }) {
   const vd = sum(data.vanessa_despesas.filter(x => x.mes === mes), 'valor')
   const md = sum(data.maezona_despesas.filter(x => x.mes === mes), 'valor')
   const mld = sum(data.milton_despesas.filter(x => x.mes === mes), 'valor')
-  const vild = sum(data.villa_despesas.filter(x => x.mes === mes), 'valor')
+  const vild = sum(data.maezona_despesas.filter(x => x.mes === mes && x.prop === 'Vilamoura'), 'valor')
   const tc = sum(data.milton_concertos, 'valor')
   const cR = sum(data.copa_receitas.filter(x => x.mes === mes), 'valor_brl')
   const cD = sum(data.copa_despesas.filter(x => x.mes === mes), 'valor_brl')
@@ -816,7 +816,8 @@ function VillaPage({ data, mes, reload, tab, setTab }) {
   const [modal, setModal] = useState(null)
   const resAnо = data.villa_reservas
   const resMes = data.villa_reservas.filter(r => r.entrada && r.entrada.startsWith(mes))
-  const desp = data.villa_despesas.filter(x => x.mes === mes)
+  // encargos lidos da Mãezona, fonte única de verdade
+  const desp = (data.maezona_despesas || []).filter(x => x.prop === 'Vilamoura' && x.mes === mes)
   const tr = sum(resMes.filter(r => r.tipo === 'Inquilino'), 'valor')
   const td = sum(desp, 'valor')
   const noitesAnо = resAnо.filter(r => r.tipo === 'Inquilino').reduce((s, r) => s + noites(r), 0)
@@ -827,7 +828,7 @@ function VillaPage({ data, mes, reload, tab, setTab }) {
     <>
       <div className="stat-grid">
         <StatCard label={`Receita ${mesL(mes)}`} value={eur(tr)} sub={`${resMes.length} reservas`} ac="var(--green2)" />
-        <StatCard label={`Encargos ${mesL(mes)}`} value={eur(td)} ac="var(--red2)" />
+        <StatCard label={`Encargos ${mesL(mes)}`} value={eur(td)} sub="via Mãezona · Vilamoura" ac="var(--red2)" />
         <StatCard label="Resultado" value={<Chip v={tr - td} />} sub={mesL(mes)} ac="var(--green2)" />
         <StatCard label="Noites alugadas" value={`${noitesAnо} noites`} sub="2026" ac="var(--green2)" />
       </div>
@@ -852,14 +853,19 @@ function VillaPage({ data, mes, reload, tab, setTab }) {
         { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—', edit: 'number' },
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['confirmado','pendente'] },
       ]} rows={resAnо} /></>}
-      {tab === 'desp' && <><SecHead label={`Encargos — ${mesL(mes)}`} onAdd={() => setModal('desp')} /><Tbl table="villa_despesas" onSave={reload} cols={[
-        { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['condomínio','seguros','energia','água','outros'] },
-        { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
-        { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
-        { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
-      ]} rows={desp} /></>}
+      {tab === 'desp' && (
+        <>
+          <SecHead label={`Encargos Vilamoura — ${mesL(mes)}`} />
+          <div className="info-strip teal" style={{ marginBottom: 12 }}><i className="ti ti-info-circle" /> Geridos em Mãezona · Vilamoura. Para adicionar ou editar, usa a página da Mãezona.</div>
+          <Tbl cols={[
+            { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} /> },
+            { k: 'descricao', l: 'Descrição', n: true },
+            { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) },
+            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> },
+          ]} rows={desp} />
+        </>
+      )}
       {modal === 'res' && <Drawer title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'entrada', l: 'Data entrada', t: 'date' }, { k: 'saida', l: 'Data saída', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Inquilino','Amigos','Família'] }, { k: 'inquilino', l: 'Nome / Quem', t: 'text' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo','Airbnb','Booking','Outro'] }, { k: 'valor', l: 'Receita (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['confirmado','pendente'] }]} onClose={() => setModal(null)} onSave={saveRes} />}
-      {modal === 'desp' && <Drawer title="Novo encargo — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','seguros','energia','água','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('villa_despesas', { mes, categoria: f.categoria || 'outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
     </>
   )
 }
@@ -914,7 +920,7 @@ function CopaPage({ data, mes, reload, tab, setTab }) {
 // ══════════════════════════════════════════════════════════════════════════
 // APP SHELL
 // ══════════════════════════════════════════════════════════════════════════
-const TABLES = ['vanessa_rendimentos','vanessa_despesas','vanessa_freelancers','maezona_despesas','maezona_rendimentos','milton_despesas','milton_concertos','villa_reservas','villa_despesas','copa_receitas','copa_despesas','copa_transferencias']
+const TABLES = ['vanessa_rendimentos','vanessa_despesas','vanessa_freelancers','maezona_despesas','maezona_rendimentos','milton_despesas','milton_concertos','villa_reservas','copa_receitas','copa_despesas','copa_transferencias']
 
 const PAGE_DEFAULT_TABS = { vanessa: 'desp', maezona: 'desp', milton: 'conc', villa: 'res', copa: 'desp' }
 
