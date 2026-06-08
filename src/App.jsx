@@ -60,7 +60,7 @@ const CAT_COLORS = {
 
 // categorias disponíveis para despesas Vanessa
 const CATS_VANESSA = [
-  'alimentação','casa','filhos','financeiro','pessoal','saúde','transporte',
+  'alimentação','animais','casa','filhos','financeiro','pessoal','saúde','transporte',
   'crédito','entretenimento','outros',
 ]
 
