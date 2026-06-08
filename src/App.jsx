@@ -947,8 +947,8 @@ export default function App() {
     if (m) setMes(m)
   }
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const results = await Promise.all(TABLES.map(t => db.get(t)))
       const d = {}
@@ -957,7 +957,7 @@ export default function App() {
     } catch (e) {
       console.error(e)
     }
-    setLoading(false)
+    if (!silent) setLoading(false)
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -966,11 +966,11 @@ export default function App() {
 
   const PAGES = {
     dash:    data ? <Dashboard data={data} mes={mes} /> : null,
-    vanessa: data ? <VanessaPage data={data} mes={mes} reload={load} /> : null,
-    maezona: data ? <MaezonaPage data={data} mes={mes} reload={load} /> : null,
-    milton:  data ? <MiltonPage data={data} mes={mes} reload={load} /> : null,
-    villa:   data ? <VillaPage data={data} mes={mes} reload={load} /> : null,
-    copa:    data ? <CopaPage data={data} mes={mes} reload={load} /> : null,
+    vanessa: data ? <VanessaPage data={data} mes={mes} reload={() => load(true)} /> : null,
+    maezona: data ? <MaezonaPage data={data} mes={mes} reload={() => load(true)} /> : null,
+    milton:  data ? <MiltonPage data={data} mes={mes} reload={() => load(true)} /> : null,
+    villa:   data ? <VillaPage data={data} mes={mes} reload={() => load(true)} /> : null,
+    copa:    data ? <CopaPage data={data} mes={mes} reload={() => load(true)} /> : null,
   }
 
   return (
