@@ -248,9 +248,9 @@ function MonthSelector({ mes, onChange }) {
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-          background: 'var(--bg)', border: '1px solid var(--border)',
-          borderRadius: 10, padding: '6px 0', zIndex: 300,
-          minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,.18)',
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 12, padding: '8px 0', zIndex: 9999,
+          minWidth: 180, boxShadow: 'var(--shadow-xl)',
         }}>
           {MESES_DISPONIVEIS.map(m => {
             const active = m === mes
@@ -258,13 +258,18 @@ function MonthSelector({ mes, onChange }) {
               <button
                 key={m}
                 onClick={() => { onChange(m); setOpen(false) }}
+                onMouseEnter={e => { if (!active) e.target.style.background = 'var(--bg2)' }}
+                onMouseLeave={e => { if (!active) e.target.style.background = 'none' }}
                 style={{
                   display: 'block', width: '100%', textAlign: 'left',
-                  padding: '8px 16px', background: active ? 'var(--bg2)' : 'none',
-                  border: 'none', cursor: 'pointer', fontSize: 13,
+                  padding: '10px 18px', background: active ? 'var(--bg2)' : 'none',
+                  border: 'none', cursor: 'pointer', fontSize: 14,
                   color: active ? 'var(--gold2)' : 'var(--text)',
-                  fontWeight: active ? 600 : 400,
+                  fontWeight: active ? 700 : 500,
                   fontFamily: 'inherit',
+                  transition: 'all .15s',
+                  borderRadius: 6,
+                  margin: '0 6px',
                 }}
               >
                 {active && <i className="ti ti-point-filled" style={{ fontSize: 10, marginRight: 6, verticalAlign: 1 }} />}
