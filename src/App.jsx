@@ -777,7 +777,7 @@ function MiltonPage({ data, mes, reload, tab, setTab }) {
   const [modal, setModal] = useState(null)
   const desp = data.milton_despesas.filter(x => x.mes === mes)
   const concMes = data.milton_concertos.filter(x => x.data && x.data.startsWith(mes))
-  const concAnо = data.milton_concertos
+  const concAno = data.milton_concertos
 
   const saveConc = async f => { await db.insert('milton_concertos', { data: f.data, descricao: f.descricao, entidade: f.entidade, nif: f.nif, localidade: f.localidade, valor: +f.valor || 0, iva: +f.iva || 0, estado: f.estado || 'Done' }); reload(); setModal(null) }
 
@@ -787,7 +787,7 @@ function MiltonPage({ data, mes, reload, tab, setTab }) {
         <StatCard label={`Recebimentos ${mesL(mes)}`} value={eur(sum(concMes, 'valor'))} sub={`${concMes.length} actuações`} ac="var(--violet2)" />
         <StatCard label="IVA do mês" value={eur(sum(concMes, 'iva'))} ac="var(--violet2)" />
         <StatCard label={`Despesas ${mesL(mes)}`} value={eur(sum(desp, 'valor'))} ac="var(--red2)" />
-        <StatCard label="Total ano" value={eur(sum(concAnо, 'valor'))} sub={`${concAnо.length} actuações`} ac="var(--violet2)" />
+        <StatCard label="Total ano" value={eur(sum(concAno, 'valor'))} sub={`${concAno.length} actuações`} ac="var(--violet2)" />
       </div>
       <Tabs items={[{ k: 'conc', l: 'Concertos & Recibos' }, { k: 'desp', l: 'Despesas Casa Belas' }]} active={tab} onChange={setTab} />
       {tab === 'conc' && <><SecHead label={`Recibos verdes — ${mesL(mes)}`} onAdd={() => setModal('conc')} /><Tbl table="milton_concertos" onSave={reload} cols={[
