@@ -829,9 +829,9 @@ function MiltonPage({ data, mes, reload, tab, setTab, blur = false }) {
 // ── calendário anual Villa ─────────────────────────────────────────────────
 const VILLA_TIPOS = {
   'Irasine':    { cor: '#2E7D32', fg: '#fff',    label: 'Irasine'   },
+  'Inquilino':  { cor: '#E65100', fg: '#fff',    label: 'Inquilino' },
   'Amigos':     { cor: '#7B3FA0', fg: '#fff',    label: 'Amigos'    },
   'Família':    { cor: '#1565C0', fg: '#fff',    label: 'Família'   },
-  'Jonhy':      { cor: '#E65100', fg: '#fff',    label: 'Jonhy'     },
 }
 
 function CalendarioVilla({ reservas, onDayClick }) {
@@ -845,8 +845,11 @@ function CalendarioVilla({ reservas, onDayClick }) {
     for (const r of reservas) {
       if (!r.entrada || !r.saida) continue
       if (dateStr >= r.entrada && dateStr <= r.saida) {
-        const isJonhy = (r.inquilino || '').toLowerCase().includes('jonh') || (r.tipo || '').toLowerCase().includes('jonh')
-        const tipo = isJonhy ? 'Jonhy' : (r.tipo || 'Irasine')
+        // Converter "Jonhy" antigo para "Inquilino"
+        let tipo = r.tipo || 'Irasine'
+        if (tipo === 'Jonhy' || (r.inquilino || '').toLowerCase().includes('jonh')) {
+          tipo = 'Inquilino'
+        }
         return { tipo, r }
       }
     }
@@ -1087,9 +1090,11 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
   const resMes = data.villa_reservas.filter(r => r.entrada && r.entrada.startsWith(mes))
   // encargos lidos da Mãezona, fonte única de verdade
   const desp = (data.maezona_despesas || []).filter(x => x.prop === 'Vilamoura' && x.mes === mes)
-  const tr = sum(resMes.filter(r => r.tipo === 'Irasine'), 'valor')
+  // Receita: contar todas as reservas com valor, independente do tipo (Irasine, Jonhy, etc)
+  const tr = sum(resMes.filter(r => r.valor > 0), 'valor')
   const td = sum(desp, 'valor')
-  const noitesAnо = resAnо.filter(r => r.tipo === 'Irasine').reduce((s, r) => s + noites(r), 0)
+  // Noites alugadas: contar reservas que geram receita (Irasine, Inquilino, Jonhy - não Amigos/Família)
+  const noitesAnо = resAnо.filter(r => r.tipo === 'Irasine' || r.tipo === 'Inquilino' || r.tipo === 'Jonhy').reduce((s, r) => s + noites(r), 0)
 
   const saveRes = async f => { await db.insert('villa_reservas', { entrada: f.entrada, saida: f.saida, tipo: f.tipo || 'Inquilino', inquilino: f.inquilino, canal: f.canal || 'Directo', valor: +f.valor || 0, estado: f.estado || 'confirmado' }); reload(); setModal(null) }
 
@@ -1200,7 +1205,7 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
         { k: 'entrada', l: 'Check-in', edit: 'date' },
         { k: 'saida', l: 'Check-out', edit: 'date' },
         { k: 'noites', l: 'Noites', fn: r => noites(r) },
-        { k: 'tipo', l: 'Tipo', edit: 'select', options: ['Irasine','Amigos','Família'] },
+        { k: 'tipo', l: 'Tipo', edit: 'select', options: ['Irasine','Inquilino','Amigos','Família'] },
         { k: 'inquilino', l: 'Hóspede', n: true, edit: 'text' },
         { k: 'canal', l: 'Canal', edit: 'select', options: ['Directo','Airbnb','Booking','Outro'] },
         { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—', edit: 'number' },
@@ -1210,7 +1215,7 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
         { k: 'entrada', l: 'Check-in', edit: 'date' },
         { k: 'saida', l: 'Check-out', edit: 'date' },
         { k: 'noites', l: 'Noites', fn: r => noites(r) },
-        { k: 'tipo', l: 'Tipo', edit: 'select', options: ['Irasine','Amigos','Família'] },
+        { k: 'tipo', l: 'Tipo', edit: 'select', options: ['Irasine','Inquilino','Amigos','Família'] },
         { k: 'inquilino', l: 'Hóspede', n: true, edit: 'text' },
         { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—', edit: 'number' },
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['confirmado','pendente'] },
@@ -1226,7 +1231,7 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
           ]} rows={desp} />
         </>
       )}
-      {modal === 'res' && <Drawer title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'entrada', l: 'Data entrada', t: 'date' }, { k: 'saida', l: 'Data saída', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Irasine','Amigos','Família'] }, { k: 'inquilino', l: 'Nome / Quem', t: 'text' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo','Airbnb','Booking','Outro'] }, { k: 'valor', l: 'Receita (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['confirmado','pendente'] }]} onClose={() => setModal(null)} onSave={saveRes} />}
+      {modal === 'res' && <Drawer title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'entrada', l: 'Data entrada', t: 'date' }, { k: 'saida', l: 'Data saída', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Irasine','Inquilino','Amigos','Família'] }, { k: 'inquilino', l: 'Nome / Quem', t: 'text' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo','Airbnb','Booking','Outro'] }, { k: 'valor', l: 'Receita (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['confirmado','pendente'] }]} onClose={() => setModal(null)} onSave={saveRes} />}
 
       {calendarModal && (
         <>
