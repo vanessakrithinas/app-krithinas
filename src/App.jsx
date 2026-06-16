@@ -600,6 +600,7 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
   const saveDesp = async f => {
     await db.insert('vanessa_despesas', {
       mes,
+      data: f.data,
       categoria: f.categoria || 'outros',
       descricao: f.descricao,
       valor: f.valor,
@@ -621,7 +622,7 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
 
   const saveRend = async f => {
     await db.insert('vanessa_rendimentos', {
-      mes, tipo: f.tipo, entidade: f.entidade,
+      mes, data: f.data, tipo: f.tipo, entidade: f.entidade,
       valor: +f.valor || 0, estado: f.estado || 'recebido',
     })
     reload()
@@ -662,6 +663,7 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
           </div>
           <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setDrawer(true)} />
           <Tbl table="vanessa_despesas" onSave={reload} cols={[
+            { k: 'data', l: 'Data', edit: 'date' },
             { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
             { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: CATS_VANESSA },
             { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
@@ -673,6 +675,7 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
         <>
           <SecHead label={`Rendimentos — ${mesL(mes)}`} onAdd={() => setModal('rend')} />
           <Tbl table="vanessa_rendimentos" onSave={reload} cols={[
+            { k: 'data', l: 'Data', edit: 'date' },
             { k: 'tipo', l: 'Tipo', n: true, edit: 'text' },
             { k: 'entidade', l: 'Entidade', fn: r => r.entidade || '—', edit: 'text' },
             { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
@@ -711,7 +714,7 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
         />
       )}
       {modal === 'free' && <DrawerFreelance ac="var(--gold2)" onClose={() => setModal(null)} onSave={saveFree} />}
-      {modal === 'rend' && <Drawer title="Novo rendimento — Vanessa" ac="var(--gold2)" fields={[{ k: 'tipo', l: 'Tipo', t: 'sel', o: ['salario','avenca','freelancer','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['recebido','pendente'] }]} onClose={() => setModal(null)} onSave={saveRend} />}
+      {modal === 'rend' && <Drawer title="Novo rendimento — Vanessa" ac="var(--gold2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['salario','avenca','freelancer','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['recebido','pendente'] }]} onClose={() => setModal(null)} onSave={saveRend} />}
     </>
   )
 }
@@ -728,7 +731,7 @@ function MaezonaPage({ data, mes, reload, tab, setTab }) {
   const tr = sum(rend, 'valor')
   const td = q + v + dv
 
-  const save = async f => { await db.insert('maezona_despesas', { mes, prop: f.prop || 'Queluz', categoria: f.categoria || 'Outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(false) }
+  const save = async f => { await db.insert('maezona_despesas', { mes, data: f.data, prop: f.prop || 'Queluz', categoria: f.categoria || 'Outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(false) }
 
   return (
     <>
@@ -748,6 +751,7 @@ function MaezonaPage({ data, mes, reload, tab, setTab }) {
           </div>
           <SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal(true)} />
           <Tbl table="maezona_despesas" onSave={reload} cols={[
+            { k: 'data', l: 'Data', edit: 'date' },
             { k: 'prop', l: 'Prop.', edit: 'select', options: ['Queluz','Vilamoura','Diversos'] },
             { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['condomínio','seguros','energia','água','garagem','comunicações','saúde','cuidadoras','alimentação','animais','empregada','outros'] },
             { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
@@ -760,6 +764,7 @@ function MaezonaPage({ data, mes, reload, tab, setTab }) {
         <>
           <SecHead label={`Rendimentos — ${mesL(mes)}`} onAdd={() => setModal('rend')} />
           <Tbl table="maezona_rendimentos" onSave={reload} cols={[
+            { k: 'data', l: 'Data', edit: 'date' },
             { k: 'tipo', l: 'Tipo', n: true, edit: 'select', options: ['pensão','transferência','IRS','outro'] },
             { k: 'entidade', l: 'Entidade', edit: 'text' },
             { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
@@ -767,8 +772,8 @@ function MaezonaPage({ data, mes, reload, tab, setTab }) {
           ]} rows={rend} />
         </>
       )}
-      {modal === true && <Drawer title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','seguros','energia','água','garagem','comunicações','saúde','cuidadoras','alimentação','animais','empregada','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
-      {modal === 'rend' && <Drawer title="Novo rendimento — Mãezona" ac="var(--teal2)" fields={[{ k: 'tipo', l: 'Tipo', t: 'sel', o: ['pensão','transferência','IRS','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['recebido','pendente'] }]} onClose={() => setModal(false)} onSave={async f => { await db.insert('maezona_rendimentos', { mes, tipo: f.tipo, entidade: f.entidade, valor: +f.valor || 0, estado: f.estado || 'recebido' }); reload(); setModal(false) }} />}
+      {modal === true && <Drawer title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','seguros','energia','água','garagem','comunicações','saúde','cuidadoras','alimentação','animais','empregada','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
+      {modal === 'rend' && <Drawer title="Novo rendimento — Mãezona" ac="var(--teal2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['pensão','transferência','IRS','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['recebido','pendente'] }]} onClose={() => setModal(false)} onSave={async f => { await db.insert('maezona_rendimentos', { mes, data: f.data, tipo: f.tipo, entidade: f.entidade, valor: +f.valor || 0, estado: f.estado || 'recebido' }); reload(); setModal(false) }} />}
     </>
   )
 }
@@ -801,13 +806,14 @@ function MiltonPage({ data, mes, reload, tab, setTab }) {
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['Done','In progress'] },
       ]} rows={concMes} /></>}
       {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal('desp')} /><Tbl table="milton_despesas" onSave={reload} cols={[
+        { k: 'data', l: 'Data', edit: 'date' },
         { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['habitação','seguros','saúde','financeiro'] },
         { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
         { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
       ]} rows={desp} /></>}
       {modal === 'conc' && <Drawer title="Novo concerto — Milton" ac="var(--violet2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'descricao', l: 'Concerto', t: 'text' }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'nif', l: 'NIF', t: 'text' }, { k: 'localidade', l: 'Localidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'iva', l: 'IVA (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['Done','In progress'] }]} onClose={() => setModal(null)} onSave={saveConc} />}
-      {modal === 'desp' && <Drawer title="Nova despesa — Milton" ac="var(--violet2)" fields={[{ k: 'categoria', l: 'Categoria', t: 'cat', o: ['habitação','seguros','saúde','financeiro'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('milton_despesas', { mes, categoria: f.categoria || 'outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
+      {modal === 'desp' && <Drawer title="Nova despesa — Milton" ac="var(--violet2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['habitação','seguros','saúde','financeiro'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('milton_despesas', { mes, data: f.data, categoria: f.categoria || 'outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
     </>
   )
 }
@@ -1115,7 +1121,7 @@ function CopaPage({ data, mes, reload, tab, setTab }) {
   const tRanо = sum(recAnо, 'valor_brl')
   const tDanо = sum(despAnо, 'valor_brl')
 
-  const saveRec = async f => { await db.insert('copa_receitas', { mes, descricao: f.descricao || 'Aluguel AP 812', canal: f.canal || 'RioHost', valor_brl: +f.valor_brl || 0, taxa: +f.taxa || 0.18, estado: f.estado || 'recebido' }); reload(); setModal(null) }
+  const saveRec = async f => { await db.insert('copa_receitas', { mes, data: f.data, descricao: f.descricao || 'Aluguel AP 812', canal: f.canal || 'RioHost', valor_brl: +f.valor_brl || 0, taxa: +f.taxa || 0.18, estado: f.estado || 'recebido' }); reload(); setModal(null) }
   const saveTr = async f => { await db.insert('copa_transferencias', { data: f.data, valor_brl: +f.valor_brl || 0, valor_eur: +f.valor_eur || 0, notas: f.notas }); reload(); setModal(null) }
 
   return (
@@ -1130,12 +1136,14 @@ function CopaPage({ data, mes, reload, tab, setTab }) {
       <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'desp', l: 'Despesas' }, { k: 'rec', l: 'Receitas' }, { k: 'res', l: 'Resumo Ano' }, { k: 'tr', l: 'Transf. PT' }]} active={tab} onChange={setTab} />
       {tab === 'cal' && <><SecHead label="Calendário de ocupação 2026" onAdd={() => setModal('rec')} /><CalendarioCopa receitas={recAnо} /></>}
       {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal('desp')} /><Tbl table="copa_despesas" onSave={reload} cols={[
+        { k: 'data', l: 'Data', edit: 'date' },
         { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] },
         { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
         { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl), edit: 'number' },
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
       ]} rows={despMes} /></>}
       {tab === 'rec' && <><SecHead label={`Receitas — ${mesL(mes)}`} onAdd={() => setModal('rec')} /><Tbl table="copa_receitas" onSave={reload} cols={[
+        { k: 'data', l: 'Data', edit: 'date' },
         { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
         { k: 'canal', l: 'Canal', edit: 'select', options: ['RioHost','Booking','Airbnb','Directo'] },
         { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl), edit: 'number' },
@@ -1144,8 +1152,8 @@ function CopaPage({ data, mes, reload, tab, setTab }) {
       ]} rows={recMes} /></>}
       {tab === 'res' && <><SecHead label="Resumo por mês 2026" /><Tbl cols={[{ k: 'mes', l: 'Mês', fn: r => mesL(r.mes), n: true }, { k: 'rec', l: 'Aluguel BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'desp', l: 'Despesas BRL', r: true, fn: r => brl(sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl')) }, { k: 'saldo', l: 'Saldo', r: true, fn: r => { const s = r.valor_brl - sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl'); return <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span> } }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={recAnо} /></>}
       {tab === 'tr' && <><SecHead label="Transferências BRL → EUR" onAdd={() => setModal('tr')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'notas', l: 'Referência', n: true }, { k: 'valor_brl', l: 'Enviado BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'valor_eur', l: 'Recebido EUR', r: true, fn: r => eur(r.valor_eur) }, { k: 'taxa', l: 'Taxa real', r: true, fn: r => r.valor_brl ? (r.valor_eur / r.valor_brl).toFixed(4) : '—' }]} rows={tr} /></>}
-      {modal === 'desp' && <Drawer title="Nova despesa — Copa Rio" ac="var(--blue2)" fields={[{ k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('copa_despesas', { mes, categoria: f.categoria || 'outros', descricao: f.descricao, valor_brl: +f.valor_brl || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
-      {modal === 'rec' && <Drawer title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost','Booking','Airbnb','Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'taxa', l: 'Taxa câmbio', t: 'text', p: '0.18' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['recebido','pendente'] }]} onClose={() => setModal(null)} onSave={saveRec} />}
+      {modal === 'desp' && <Drawer title="Nova despesa — Copa Rio" ac="var(--blue2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('copa_despesas', { mes, data: f.data, categoria: f.categoria || 'outros', descricao: f.descricao, valor_brl: +f.valor_brl || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
+      {modal === 'rec' && <Drawer title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost','Booking','Airbnb','Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'taxa', l: 'Taxa câmbio', t: 'text', p: '0.18' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['recebido','pendente'] }]} onClose={() => setModal(null)} onSave={saveRec} />}
       {modal === 'tr' && <Drawer title="Nova transferência BRL → EUR" ac="var(--blue2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'valor_brl', l: 'Valor enviado (BRL)', t: 'money' }, { k: 'valor_eur', l: 'Valor recebido (EUR)', t: 'money' }, { k: 'notas', l: 'Referência', t: 'text', p: 'Ex: Jan-Mar 2026' }]} onClose={() => setModal(null)} onSave={saveTr} />}
     </>
   )

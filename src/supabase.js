@@ -8,7 +8,7 @@ export const supabase = createClient(url, key)
 // ── helpers ────────────────────────────────────────────────────────────────
 export const db = {
   async get(table, filters = {}) {
-    let q = supabase.from(table).select('*').order('id', { ascending: true })
+    let q = supabase.from(table).select('*').order('id', { ascending: false })
     for (const [col, val] of Object.entries(filters)) q = q.eq(col, val)
     const { data, error } = await q
     if (error) throw error
