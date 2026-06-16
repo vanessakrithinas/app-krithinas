@@ -400,6 +400,19 @@ td.name {
   padding: 6px;
   margin-bottom: 24px;
   box-shadow: inset 0 1px 2px rgba(0,0,0,.05);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.tab-row::-webkit-scrollbar {
+  height: 4px;
+}
+.tab-row::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tab-row::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 4px;
 }
 .tab-btn {
   background: none;
@@ -411,9 +424,10 @@ td.name {
   font-size: 14px;
   font-family: 'DM Sans', sans-serif;
   font-weight: 600;
-  flex: 1;
+  flex: 1 0 auto;
   transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  min-width: fit-content;
 }
 .tab-btn:hover:not(.active) {
   color: var(--text);
@@ -624,4 +638,13 @@ td.name {
   .stat-value { font-size: 20px; }
   table { font-size: 12px; }
   td, th { padding: 10px 12px; }
+  .tab-row {
+    padding: 4px;
+    gap: 4px;
+  }
+  .tab-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    flex: 0 0 auto;
+  }
 }
