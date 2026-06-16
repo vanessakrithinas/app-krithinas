@@ -836,8 +836,8 @@ const VILLA_TIPOS = {
 
 function CalendarioVilla({ reservas, onDayClick }) {
   const ano = 2026
-  const mesesNomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
-  const diasSemana = ['D','S','T','Q','Q','S','S']
+  const mesesNomes = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO']
+  const diasSemana = ['S','D','S','T','Q','Q','S']
 
   // para cada dia do ano, determinar que reserva se aplica
   const getDayInfo = (mes0, dia) => {
@@ -845,7 +845,6 @@ function CalendarioVilla({ reservas, onDayClick }) {
     for (const r of reservas) {
       if (!r.entrada || !r.saida) continue
       if (dateStr >= r.entrada && dateStr <= r.saida) {
-        // Jonhy: identificado pelo nome no tipo ou no campo inquilino
         const isJonhy = (r.inquilino || '').toLowerCase().includes('jonh') || (r.tipo || '').toLowerCase().includes('jonh')
         const tipo = isJonhy ? 'Jonhy' : (r.tipo || 'Irasine')
         return { tipo, r }
@@ -854,75 +853,96 @@ function CalendarioVilla({ reservas, onDayClick }) {
     return null
   }
 
-  const cellW = 28
-  const cellH = 26
-  const labelW = 90
-  const headerH = 0
-  const rowH = cellH + 2
-  const maxDias = 31
-  const svgW = labelW + maxDias * cellW + 2
-  const svgH = headerH + 12 * rowH + 48
+  const cellW = 32
+  const cellH = 30
+  const labelW = 100
+  const headerH = 32
+  const rowH = cellH + 1
+  const diasPorSemana = 7
+  const semanas = 6 // máximo de semanas que um mês pode ter
+  const svgW = labelW + diasPorSemana * semanas * cellW + 10
+  const svgH = headerH + 12 * rowH + 60
 
   return (
     <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
       <svg width={svgW} height={svgH} style={{ fontFamily: 'DM Sans, sans-serif', display: 'block' }}>
         {/* legenda */}
         {Object.entries(VILLA_TIPOS).map(([k, v], i) => (
-          <g key={k} transform={`translate(${labelW + i * 110}, ${svgH - 32})`}>
-            <rect width={14} height={14} rx={3} fill={v.cor} />
-            <text x={18} y={11} fontSize={11} fill="var(--text2)">{v.label}</text>
+          <g key={k} transform={`translate(${labelW + i * 110}, ${svgH - 44})`}>
+            <rect width={16} height={16} rx={4} fill={v.cor} />
+            <text x={22} y={12} fontSize={12} fill="var(--text2)" fontWeight={500}>{v.label}</text>
           </g>
         ))}
-        <g transform={`translate(${labelW + Object.keys(VILLA_TIPOS).length * 110}, ${svgH - 32})`}>
-          <rect width={14} height={14} rx={3} fill="var(--bg2)" stroke="var(--border)" strokeWidth={1} />
-          <text x={18} y={11} fontSize={11} fill="var(--text2)">Disponível</text>
+        <g transform={`translate(${labelW + Object.keys(VILLA_TIPOS).length * 110}, ${svgH - 44})`}>
+          <rect width={16} height={16} rx={4} fill="var(--bg2)" stroke="var(--border)" strokeWidth={1.5} />
+          <text x={22} y={12} fontSize={12} fill="var(--text2)" fontWeight={500}>Disponível</text>
         </g>
+
+        {/* cabeçalho com dias da semana repetidos */}
+        {Array.from({ length: semanas * diasPorSemana }, (_, i) => {
+          const dow = i % 7
+          const isWeekend = dow === 0 || dow === 1 // S ou D
+          return (
+            <g key={i} transform={`translate(${labelW + i * cellW}, 0)`}>
+              <rect width={cellW - 1} height={headerH - 4} fill={isWeekend ? 'var(--bg2)' : 'transparent'} rx={2} />
+              <text x={(cellW - 1) / 2} y={headerH / 2 + 4} fontSize={11} fontWeight={600}
+                textAnchor="middle" fill={isWeekend ? 'var(--text)' : 'var(--text2)'}>
+                {diasSemana[dow]}
+              </text>
+            </g>
+          )
+        })}
 
         {mesesNomes.map((nomeMes, mes0) => {
           const diasNoMes = new Date(ano, mes0 + 1, 0).getDate()
+          const primeiroDia = new Date(ano, mes0, 1).getDay() // 0=Dom, 1=Seg...
           const y = headerH + mes0 * rowH
 
           return (
             <g key={mes0}>
               {/* nome do mês */}
-              <text x={labelW - 8} y={y + cellH / 2 + 4} fontSize={11} fontWeight={600}
-                textAnchor="end" fill="var(--text2)" letterSpacing=".03em">
-                {nomeMes.toUpperCase()}
+              <text x={labelW - 10} y={y + cellH / 2 + 5} fontSize={11} fontWeight={700}
+                textAnchor="end" fill="var(--text)" letterSpacing=".04em">
+                {nomeMes}
               </text>
 
-              {Array.from({ length: maxDias }, (_, d) => {
-                const dia = d + 1
-                if (dia > diasNoMes) {
-                  // célula vazia fora do mês
+              {/* renderizar dias do mês */}
+              {Array.from({ length: 42 }, (_, idx) => {
+                const dia = idx - primeiroDia + 1
+                const x = labelW + idx * cellW
+
+                // células vazias antes do início do mês ou após o fim
+                if (dia < 1 || dia > diasNoMes) {
                   return (
-                    <rect key={d} x={labelW + d * cellW} y={y} width={cellW - 1} height={cellH}
-                      fill="transparent" />
+                    <rect key={idx} x={x} y={y} width={cellW - 1} height={cellH}
+                      fill="var(--bg2)" opacity={0.3} rx={2} />
                   )
                 }
+
                 const info = getDayInfo(mes0, dia)
                 const tipo = info ? info.tipo : null
                 const cfg = tipo ? VILLA_TIPOS[tipo] : null
-                const bg = cfg ? cfg.cor : 'var(--bg2)'
-                const fg2 = cfg ? cfg.fg : 'var(--text2)'
                 const dateStr = `${ano}-${String(mes0+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`
                 const dow = new Date(dateStr).getDay()
                 const isWeekend = dow === 0 || dow === 6
                 const isToday = dateStr === new Date().toISOString().slice(0,10)
+                const bg = cfg ? cfg.cor : (isWeekend ? 'var(--bg2)' : 'var(--bg)')
+                const fg = cfg ? cfg.fg : 'var(--text)'
 
                 return (
-                  <g key={d} onClick={() => onDayClick && onDayClick(dateStr, info)} style={{ cursor: onDayClick ? 'pointer' : 'default' }}>
-                    <rect x={labelW + d * cellW} y={y} width={cellW - 1} height={cellH} rx={2}
-                      fill={cfg ? bg : (isWeekend ? 'var(--bg2)' : 'var(--bg)')}
-                      stroke={isToday ? '#F59E0B' : cfg ? 'transparent' : 'var(--border)'}
-                      strokeWidth={isToday ? 2 : 0.5}
-                      style={{ transition: 'opacity .2s' }}
-                      onMouseEnter={e => { if (onDayClick) e.target.style.opacity = '0.7' }}
-                      onMouseLeave={e => { if (onDayClick) e.target.style.opacity = '1' }}
+                  <g key={idx} onClick={() => onDayClick && onDayClick(dateStr, info)} style={{ cursor: 'pointer' }}>
+                    <rect x={x} y={y} width={cellW - 1} height={cellH} rx={3}
+                      fill={bg}
+                      stroke={isToday ? '#F59E0B' : 'var(--border)'}
+                      strokeWidth={isToday ? 2.5 : 0.5}
+                      style={{ transition: 'opacity .15s' }}
+                      onMouseEnter={e => e.target.style.opacity = '0.75'}
+                      onMouseLeave={e => e.target.style.opacity = '1'}
                     />
-                    <text x={labelW + d * cellW + (cellW - 1) / 2} y={y + cellH / 2 + 4}
-                      fontSize={10} textAnchor="middle"
-                      fill={cfg ? fg2 : isWeekend ? 'var(--text2)' : 'var(--text3, #aaa)'}
-                      fontWeight={isToday ? 700 : 400}
+                    <text x={x + (cellW - 1) / 2} y={y + cellH / 2 + 5}
+                      fontSize={11} textAnchor="middle"
+                      fill={fg}
+                      fontWeight={isToday ? 700 : cfg ? 600 : 400}
                       style={{ pointerEvents: 'none' }}>
                       {dia}
                     </text>
@@ -946,8 +966,8 @@ const COPA_CANAIS = {
 
 function CalendarioCopa({ receitas, onDayClick }) {
   const ano = 2026
-  const mesesNomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
-  const diasSemana = ['D','S','T','Q','Q','S','S']
+  const mesesNomes = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO']
+  const diasSemana = ['S','D','S','T','Q','Q','S']
 
   // Copa: receitas têm só `mes` (YYYY-MM), sem datas de check-in/check-out
   // colorir o mês inteiro com a cor do canal
@@ -955,36 +975,52 @@ function CalendarioCopa({ receitas, onDayClick }) {
     const mesStr = `${ano}-${String(mes0+1).padStart(2,'0')}`
     const rec = receitas.filter(r => r.mes === mesStr)
     if (!rec.length) return null
-    // prioridade: primeiro registo com canal conhecido
     return rec[0]
   }
 
-  const cellW = 28
-  const cellH = 26
-  const labelW = 90
-  const headerH = 0
-  const rowH = cellH + 2
-  const maxDias = 31
-  const svgW = labelW + maxDias * cellW + 2
-  const svgH = headerH + 12 * rowH + 48
+  const cellW = 32
+  const cellH = 30
+  const labelW = 100
+  const headerH = 32
+  const rowH = cellH + 1
+  const diasPorSemana = 7
+  const semanas = 6
+  const svgW = labelW + diasPorSemana * semanas * cellW + 10
+  const svgH = headerH + 12 * rowH + 60
 
   return (
     <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
       <svg width={svgW} height={svgH} style={{ fontFamily: 'DM Sans, sans-serif', display: 'block' }}>
         {/* legenda */}
         {Object.entries(COPA_CANAIS).map(([k, v], i) => (
-          <g key={k} transform={`translate(${labelW + i * 100}, ${svgH - 32})`}>
-            <rect width={14} height={14} rx={3} fill={v.cor} />
-            <text x={18} y={11} fontSize={11} fill="var(--text2)">{v.label}</text>
+          <g key={k} transform={`translate(${labelW + i * 110}, ${svgH - 44})`}>
+            <rect width={16} height={16} rx={4} fill={v.cor} />
+            <text x={22} y={12} fontSize={12} fill="var(--text2)" fontWeight={500}>{v.label}</text>
           </g>
         ))}
-        <g transform={`translate(${labelW + Object.keys(COPA_CANAIS).length * 100}, ${svgH - 32})`}>
-          <rect width={14} height={14} rx={3} fill="var(--bg2)" stroke="var(--border)" strokeWidth={1} />
-          <text x={18} y={11} fontSize={11} fill="var(--text2)">Disponível</text>
+        <g transform={`translate(${labelW + Object.keys(COPA_CANAIS).length * 110}, ${svgH - 44})`}>
+          <rect width={16} height={16} rx={4} fill="var(--bg2)" stroke="var(--border)" strokeWidth={1.5} />
+          <text x={22} y={12} fontSize={12} fill="var(--text2)" fontWeight={500}>Disponível</text>
         </g>
+
+        {/* cabeçalho com dias da semana */}
+        {Array.from({ length: semanas * diasPorSemana }, (_, i) => {
+          const dow = i % 7
+          const isWeekend = dow === 0 || dow === 1
+          return (
+            <g key={i} transform={`translate(${labelW + i * cellW}, 0)`}>
+              <rect width={cellW - 1} height={headerH - 4} fill={isWeekend ? 'var(--bg2)' : 'transparent'} rx={2} />
+              <text x={(cellW - 1) / 2} y={headerH / 2 + 4} fontSize={11} fontWeight={600}
+                textAnchor="middle" fill={isWeekend ? 'var(--text)' : 'var(--text2)'}>
+                {diasSemana[dow]}
+              </text>
+            </g>
+          )
+        })}
 
         {mesesNomes.map((nomeMes, mes0) => {
           const diasNoMes = new Date(ano, mes0 + 1, 0).getDate()
+          const primeiroDia = new Date(ano, mes0, 1).getDay()
           const y = headerH + mes0 * rowH
           const recInfo = getMesInfo(mes0)
           const canal = recInfo ? recInfo.canal : null
@@ -992,35 +1028,44 @@ function CalendarioCopa({ receitas, onDayClick }) {
 
           return (
             <g key={mes0}>
-              <text x={labelW - 8} y={y + cellH / 2 + 4} fontSize={11} fontWeight={600}
-                textAnchor="end" fill="var(--text2)" letterSpacing=".03em">
-                {nomeMes.toUpperCase()}
+              <text x={labelW - 10} y={y + cellH / 2 + 5} fontSize={11} fontWeight={700}
+                textAnchor="end" fill="var(--text)" letterSpacing=".04em">
+                {nomeMes}
               </text>
 
-              {Array.from({ length: maxDias }, (_, d) => {
-                const dia = d + 1
-                if (dia > diasNoMes) return <rect key={d} x={labelW + d * cellW} y={y} width={cellW - 1} height={cellH} fill="transparent" />
+              {Array.from({ length: 42 }, (_, idx) => {
+                const dia = idx - primeiroDia + 1
+                const x = labelW + idx * cellW
+
+                if (dia < 1 || dia > diasNoMes) {
+                  return (
+                    <rect key={idx} x={x} y={y} width={cellW - 1} height={cellH}
+                      fill="var(--bg2)" opacity={0.3} rx={2} />
+                  )
+                }
+
                 const dateStr = `${ano}-${String(mes0+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`
                 const mesStr = `${ano}-${String(mes0+1).padStart(2,'0')}`
                 const dow = new Date(dateStr).getDay()
                 const isWeekend = dow === 0 || dow === 6
                 const isToday = dateStr === new Date().toISOString().slice(0,10)
                 const bg = cfg ? cfg.cor : (isWeekend ? 'var(--bg2)' : 'var(--bg)')
-                const fg2 = cfg ? cfg.fg : isWeekend ? 'var(--text2)' : 'var(--text3, #aaa)'
+                const fg = cfg ? cfg.fg : 'var(--text)'
 
                 return (
-                  <g key={d} onClick={() => onDayClick && onDayClick(mesStr, recInfo)} style={{ cursor: onDayClick ? 'pointer' : 'default' }}>
-                    <rect x={labelW + d * cellW} y={y} width={cellW - 1} height={cellH} rx={2}
+                  <g key={idx} onClick={() => onDayClick && onDayClick(mesStr, recInfo)} style={{ cursor: 'pointer' }}>
+                    <rect x={x} y={y} width={cellW - 1} height={cellH} rx={3}
                       fill={bg}
-                      stroke={isToday ? '#F59E0B' : cfg ? 'transparent' : 'var(--border)'}
-                      strokeWidth={isToday ? 2 : 0.5}
-                      style={{ transition: 'opacity .2s' }}
-                      onMouseEnter={e => { if (onDayClick) e.target.style.opacity = '0.7' }}
-                      onMouseLeave={e => { if (onDayClick) e.target.style.opacity = '1' }}
+                      stroke={isToday ? '#F59E0B' : 'var(--border)'}
+                      strokeWidth={isToday ? 2.5 : 0.5}
+                      style={{ transition: 'opacity .15s' }}
+                      onMouseEnter={e => e.target.style.opacity = '0.75'}
+                      onMouseLeave={e => e.target.style.opacity = '1'}
                     />
-                    <text x={labelW + d * cellW + (cellW - 1) / 2} y={y + cellH / 2 + 4}
-                      fontSize={10} textAnchor="middle" fill={fg2}
-                      fontWeight={isToday ? 700 : 400}
+                    <text x={x + (cellW - 1) / 2} y={y + cellH / 2 + 5}
+                      fontSize={11} textAnchor="middle"
+                      fill={fg}
+                      fontWeight={isToday ? 700 : cfg ? 600 : 400}
                       style={{ pointerEvents: 'none' }}>
                       {dia}
                     </text>
