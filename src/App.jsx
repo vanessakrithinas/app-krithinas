@@ -609,7 +609,6 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
       categoria: f.categoria || 'outros',
       descricao: f.descricao,
       valor: f.valor,
-      estado: f.estado || 'pago',
     })
     reload()
     setDrawer(false)
@@ -628,7 +627,7 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
   const saveRend = async f => {
     await db.insert('vanessa_rendimentos', {
       mes, data: f.data, tipo: f.tipo, entidade: f.entidade,
-      valor: +f.valor || 0, estado: f.estado || 'recebido',
+      valor: +f.valor || 0,
     })
     reload()
     setModal(null)
@@ -672,7 +671,6 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
             { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
             { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: CATS_VANESSA },
             { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
-            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
           ]} rows={despFiltradas} />
         </>
       )}
@@ -684,7 +682,6 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
             { k: 'tipo', l: 'Tipo', n: true, edit: 'text' },
             { k: 'entidade', l: 'Entidade', fn: r => r.entidade || '—', edit: 'text' },
             { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
-            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['recebido','pendente'] },
           ]} rows={rend} />
         </>
       )}
@@ -712,14 +709,13 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
             { k: 'descricao', l: 'Descrição',  t: 'text', p: 'ex: supermercado, farmácia...' },
             { k: 'categoria', l: 'Categoria',  t: 'cat',  o: CATS_VANESSA },
             { k: 'valor',     l: 'Valor (€)',  t: 'money' },
-            { k: 'estado',    l: 'Estado',     t: 'estado', o: ['pago','pendente','confirmado'] },
           ]}
           onClose={() => setDrawer(false)}
           onSave={saveDesp}
         />
       )}
       {modal === 'free' && <DrawerFreelance ac="var(--gold2)" onClose={() => setModal(null)} onSave={saveFree} />}
-      {modal === 'rend' && <Drawer title="Novo rendimento — Vanessa" ac="var(--gold2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['salario','avenca','freelancer','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['recebido','pendente'] }]} onClose={() => setModal(null)} onSave={saveRend} />}
+      {modal === 'rend' && <Drawer title="Novo rendimento — Vanessa" ac="var(--gold2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['salario','avenca','freelancer','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }]} onClose={() => setModal(null)} onSave={saveRend} />}
     </>
   )
 }
@@ -736,7 +732,7 @@ function MaezonaPage({ data, mes, reload, tab, setTab }) {
   const tr = sum(rend, 'valor')
   const td = q + v + dv
 
-  const save = async f => { await db.insert('maezona_despesas', { mes, data: f.data, prop: f.prop || 'Queluz', categoria: f.categoria || 'Outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(false) }
+  const save = async f => { await db.insert('maezona_despesas', { mes, data: f.data, prop: f.prop || 'Queluz', categoria: f.categoria || 'Outros', descricao: f.descricao, valor: +f.valor || 0 }); reload(); setModal(false) }
 
   return (
     <>
@@ -761,7 +757,6 @@ function MaezonaPage({ data, mes, reload, tab, setTab }) {
             { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['condomínio','seguros','energia','água','garagem','comunicações','saúde','cuidadoras','alimentação','animais','empregada','outros'] },
             { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
             { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
-            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
           ]} rows={rows} />
         </>
       )}
@@ -773,12 +768,11 @@ function MaezonaPage({ data, mes, reload, tab, setTab }) {
             { k: 'tipo', l: 'Tipo', n: true, edit: 'select', options: ['pensão','transferência','IRS','outro'] },
             { k: 'entidade', l: 'Entidade', edit: 'text' },
             { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
-            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['recebido','pendente'] },
           ]} rows={rend} />
         </>
       )}
-      {modal === true && <Drawer title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','seguros','energia','água','garagem','comunicações','saúde','cuidadoras','alimentação','animais','empregada','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(false)} onSave={save} />}
-      {modal === 'rend' && <Drawer title="Novo rendimento — Mãezona" ac="var(--teal2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['pensão','transferência','IRS','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['recebido','pendente'] }]} onClose={() => setModal(false)} onSave={async f => { await db.insert('maezona_rendimentos', { mes, data: f.data, tipo: f.tipo, entidade: f.entidade, valor: +f.valor || 0, estado: f.estado || 'recebido' }); reload(); setModal(false) }} />}
+      {modal === true && <Drawer title="Nova despesa — Mãezona" ac="var(--teal2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'prop', l: 'Propriedade', t: 'sel', o: ['Queluz', 'Vilamoura', 'Diversos'] }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','seguros','energia','água','garagem','comunicações','saúde','cuidadoras','alimentação','animais','empregada','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }]} onClose={() => setModal(false)} onSave={save} />}
+      {modal === 'rend' && <Drawer title="Novo rendimento — Mãezona" ac="var(--teal2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['pensão','transferência','IRS','outro'] }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }]} onClose={() => setModal(false)} onSave={async f => { await db.insert('maezona_rendimentos', { mes, data: f.data, tipo: f.tipo, entidade: f.entidade, valor: +f.valor || 0 }); reload(); setModal(false) }} />}
     </>
   )
 }
@@ -815,10 +809,9 @@ function MiltonPage({ data, mes, reload, tab, setTab }) {
         { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['habitação','seguros','saúde','financeiro'] },
         { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
         { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor), edit: 'number' },
-        { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
       ]} rows={desp} /></>}
       {modal === 'conc' && <Drawer title="Novo concerto — Milton" ac="var(--violet2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'descricao', l: 'Concerto', t: 'text' }, { k: 'entidade', l: 'Entidade', t: 'text' }, { k: 'nif', l: 'NIF', t: 'text' }, { k: 'localidade', l: 'Localidade', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'iva', l: 'IVA (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['Done','In progress'] }]} onClose={() => setModal(null)} onSave={saveConc} />}
-      {modal === 'desp' && <Drawer title="Nova despesa — Milton" ac="var(--violet2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['habitação','seguros','saúde','financeiro'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('milton_despesas', { mes, data: f.data, categoria: f.categoria || 'outros', descricao: f.descricao, valor: +f.valor || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
+      {modal === 'desp' && <Drawer title="Nova despesa — Milton" ac="var(--violet2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['habitação','seguros','saúde','financeiro'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor', l: 'Valor (€)', t: 'money' }]} onClose={() => setModal(null)} onSave={async f => { await db.insert('milton_despesas', { mes, data: f.data, categoria: f.categoria || 'outros', descricao: f.descricao, valor: +f.valor || 0 }); reload(); setModal(null) }} />}
     </>
   )
 }
