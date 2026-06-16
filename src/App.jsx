@@ -962,9 +962,9 @@ function CalendarioVilla({ reservas, onDayClick }) {
 
 // ── calendário anual Copa ─────────────────────────────────────────────────
 const COPA_CANAIS = {
-  'RioHost': { cor: '#1565C0', fg: '#fff', label: 'RioHost' },
-  'Booking':  { cor: '#2E7D32', fg: '#fff', label: 'Booking' },
-  'Directo':  { cor: '#E65100', fg: '#fff', label: 'Directo' },
+  'RioHost': { cor: '#FF8C42', fg: '#fff', label: 'RioHost' },
+  'Booking':  { cor: '#4A90E2', fg: '#fff', label: 'Booking' },
+  'Directo':  { cor: '#E94B6F', fg: '#fff', label: 'Directo' },
 }
 
 function CalendarioCopa({ receitas, onDayClick }) {
