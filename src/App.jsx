@@ -834,7 +834,7 @@ const VILLA_TIPOS = {
   'Jonhy':      { cor: '#E65100', fg: '#fff',    label: 'Jonhy'     },
 }
 
-function CalendarioVilla({ reservas }) {
+function CalendarioVilla({ reservas, onDayClick }) {
   const ano = 2026
   const mesesNomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
   const diasSemana = ['D','S','T','Q','Q','S','S']
@@ -912,16 +912,20 @@ function CalendarioVilla({ reservas }) {
                 const isToday = dateStr === new Date().toISOString().slice(0,10)
 
                 return (
-                  <g key={d}>
+                  <g key={d} onClick={() => onDayClick && onDayClick(dateStr, info)} style={{ cursor: onDayClick ? 'pointer' : 'default' }}>
                     <rect x={labelW + d * cellW} y={y} width={cellW - 1} height={cellH} rx={2}
                       fill={cfg ? bg : (isWeekend ? 'var(--bg2)' : 'var(--bg)')}
                       stroke={isToday ? '#F59E0B' : cfg ? 'transparent' : 'var(--border)'}
                       strokeWidth={isToday ? 2 : 0.5}
+                      style={{ transition: 'opacity .2s' }}
+                      onMouseEnter={e => { if (onDayClick) e.target.style.opacity = '0.7' }}
+                      onMouseLeave={e => { if (onDayClick) e.target.style.opacity = '1' }}
                     />
                     <text x={labelW + d * cellW + (cellW - 1) / 2} y={y + cellH / 2 + 4}
                       fontSize={10} textAnchor="middle"
                       fill={cfg ? fg2 : isWeekend ? 'var(--text2)' : 'var(--text3, #aaa)'}
-                      fontWeight={isToday ? 700 : 400}>
+                      fontWeight={isToday ? 700 : 400}
+                      style={{ pointerEvents: 'none' }}>
                       {dia}
                     </text>
                   </g>
@@ -954,11 +958,10 @@ function CalendarioVilla({ reservas }) {
 const COPA_CANAIS = {
   'RioHost': { cor: '#1565C0', fg: '#fff', label: 'RioHost' },
   'Booking':  { cor: '#2E7D32', fg: '#fff', label: 'Booking' },
-  'Airbnb':   { cor: '#C2185B', fg: '#fff', label: 'Airbnb'  },
   'Directo':  { cor: '#E65100', fg: '#fff', label: 'Directo' },
 }
 
-function CalendarioCopa({ receitas }) {
+function CalendarioCopa({ receitas, onDayClick }) {
   const ano = 2026
   const mesesNomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
   const diasSemana = ['D','S','T','Q','Q','S','S']
@@ -1015,6 +1018,7 @@ function CalendarioCopa({ receitas }) {
                 const dia = d + 1
                 if (dia > diasNoMes) return <rect key={d} x={labelW + d * cellW} y={y} width={cellW - 1} height={cellH} fill="transparent" />
                 const dateStr = `${ano}-${String(mes0+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`
+                const mesStr = `${ano}-${String(mes0+1).padStart(2,'0')}`
                 const dow = new Date(dateStr).getDay()
                 const isWeekend = dow === 0 || dow === 6
                 const isToday = dateStr === new Date().toISOString().slice(0,10)
@@ -1022,15 +1026,19 @@ function CalendarioCopa({ receitas }) {
                 const fg2 = cfg ? cfg.fg : isWeekend ? 'var(--text2)' : 'var(--text3, #aaa)'
 
                 return (
-                  <g key={d}>
+                  <g key={d} onClick={() => onDayClick && onDayClick(mesStr, recInfo)} style={{ cursor: onDayClick ? 'pointer' : 'default' }}>
                     <rect x={labelW + d * cellW} y={y} width={cellW - 1} height={cellH} rx={2}
                       fill={bg}
                       stroke={isToday ? '#F59E0B' : cfg ? 'transparent' : 'var(--border)'}
                       strokeWidth={isToday ? 2 : 0.5}
+                      style={{ transition: 'opacity .2s' }}
+                      onMouseEnter={e => { if (onDayClick) e.target.style.opacity = '0.7' }}
+                      onMouseLeave={e => { if (onDayClick) e.target.style.opacity = '1' }}
                     />
                     <text x={labelW + d * cellW + (cellW - 1) / 2} y={y + cellH / 2 + 4}
                       fontSize={10} textAnchor="middle" fill={fg2}
-                      fontWeight={isToday ? 700 : 400}>
+                      fontWeight={isToday ? 700 : 400}
+                      style={{ pointerEvents: 'none' }}>
                       {dia}
                     </text>
                   </g>
@@ -1060,6 +1068,7 @@ function CalendarioCopa({ receitas }) {
 
 function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
   const [modal, setModal] = useState(null)
+  const [calendarModal, setCalendarModal] = useState(null)
   const resAnо = data.villa_reservas
   const resMes = data.villa_reservas.filter(r => r.entrada && r.entrada.startsWith(mes))
   // encargos lidos da Mãezona, fonte única de verdade
@@ -1069,6 +1078,40 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
   const noitesAnо = resAnо.filter(r => r.tipo === 'Inquilino').reduce((s, r) => s + noites(r), 0)
 
   const saveRes = async f => { await db.insert('villa_reservas', { entrada: f.entrada, saida: f.saida, tipo: f.tipo || 'Inquilino', inquilino: f.inquilino, canal: f.canal || 'Directo', valor: +f.valor || 0, estado: f.estado || 'confirmado' }); reload(); setModal(null) }
+
+  const handleDayClick = (date, info) => {
+    setCalendarModal({ date, info })
+  }
+
+  const handleCalendarSave = async (tipo) => {
+    // Se tipo for null, significa remover
+    if (!tipo && calendarModal.info) {
+      // Remover a reserva existente
+      await db.remove('villa_reservas', calendarModal.info.r.id)
+    } else if (tipo) {
+      // Se já existe reserva neste dia, atualizar; senão criar nova
+      if (calendarModal.info && calendarModal.info.r) {
+        // Atualizar reserva existente
+        await db.update('villa_reservas', calendarModal.info.r.id, {
+          tipo: tipo,
+          inquilino: tipo,
+        })
+      } else {
+        // Adicionar nova reserva para este dia
+        await db.insert('villa_reservas', {
+          entrada: calendarModal.date,
+          saida: calendarModal.date, // 1 dia apenas
+          tipo: tipo,
+          inquilino: tipo,
+          canal: 'Directo',
+          valor: 0,
+          estado: 'confirmado'
+        })
+      }
+    }
+    reload()
+    setCalendarModal(null)
+  }
 
   return (
     <>
@@ -1080,7 +1123,7 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
       </div>
       <div className="info-strip teal"><i className="ti ti-info-circle" /> Agosto: 650€/sem · 85€/dia &nbsp;|&nbsp; Outros meses: 600€/sem · 80€/dia</div>
       <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'res', l: 'Reservas mês' }, { k: 'all', l: 'Todas as Reservas' }, { k: 'desp', l: 'Despesas' }]} active={tab} onChange={setTab} />
-      {tab === 'cal' && <><SecHead label="Calendário de ocupação 2026" onAdd={() => setModal('res')} /><CalendarioVilla reservas={resAnо} /></>}
+      {tab === 'cal' && <><SecHead label="Calendário de ocupação 2026 (clica num dia para editar)" onAdd={() => setModal('res')} /><CalendarioVilla reservas={resAnо} onDayClick={handleDayClick} /></>}
       {tab === 'res' && <><SecHead label={`Reservas — ${mesL(mes)}`} onAdd={() => setModal('res')} /><Tbl table="villa_reservas" onSave={reload} cols={[
         { k: 'entrada', l: 'Check-in', edit: 'date' },
         { k: 'saida', l: 'Check-out', edit: 'date' },
@@ -1112,12 +1155,111 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
         </>
       )}
       {modal === 'res' && <Drawer title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'entrada', l: 'Data entrada', t: 'date' }, { k: 'saida', l: 'Data saída', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Inquilino','Amigos','Família'] }, { k: 'inquilino', l: 'Nome / Quem', t: 'text' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo','Airbnb','Booking','Outro'] }, { k: 'valor', l: 'Receita (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['confirmado','pendente'] }]} onClose={() => setModal(null)} onSave={saveRes} />}
+
+      {calendarModal && (
+        <>
+          <style>{DRAWER_CSS}</style>
+          <div className="drawer-overlay" onClick={() => setCalendarModal(null)} />
+          <div className="drawer-panel" style={{ width: 'min(360px, 100vw)' }}>
+            <div className="drawer-hd">
+              <span className="drawer-hd-title">
+                {new Date(calendarModal.date).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+              <button className="drawer-close" onClick={() => setCalendarModal(null)}>×</button>
+            </div>
+            <div className="drawer-body" style={{ gap: 10 }}>
+              {calendarModal.info && (
+                <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.06em' }}>Reserva actual</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
+                      background: VILLA_TIPOS[calendarModal.info.tipo]?.cor || 'var(--border)'
+                    }} />
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                      {calendarModal.info.tipo}
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div className="dfl">{calendarModal.info ? 'Alterar para' : 'Escolher tipo'}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {Object.entries(VILLA_TIPOS).map(([k, v]) => (
+                  <button
+                    key={k}
+                    onClick={() => handleCalendarSave(k)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '12px 14px',
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                      background: 'var(--bg2)',
+                      cursor: 'pointer',
+                      transition: 'all .15s',
+                      fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = v.cor
+                      e.currentTarget.style.background = v.cor + '10'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      e.currentTarget.style.background = 'var(--bg2)'
+                    }}
+                  >
+                    <div style={{ width: 24, height: 24, borderRadius: 6, background: v.cor }} />
+                    <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{v.label}</span>
+                  </button>
+                ))}
+              </div>
+              {calendarModal.info && (
+                <>
+                  <div style={{ height: 1, background: 'var(--border)', margin: '12px 0' }} />
+                  <button
+                    onClick={() => handleCalendarSave(null)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      padding: '12px',
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                      background: 'var(--bg2)',
+                      cursor: 'pointer',
+                      transition: 'all .15s',
+                      fontFamily: 'inherit',
+                      color: 'var(--red2)',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = 'var(--red2)'
+                      e.currentTarget.style.background = '#FEF2F2'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      e.currentTarget.style.background = 'var(--bg2)'
+                    }}
+                  >
+                    <i className="ti ti-trash" style={{ fontSize: 16 }} />
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>Remover reserva</span>
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </>
   )
 }
 
 function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
   const [modal, setModal] = useState(null)
+  const [calendarModal, setCalendarModal] = useState(null)
   const recMes = data.copa_receitas.filter(x => x.mes === mes)
   const despMes = data.copa_despesas.filter(x => x.mes === mes)
   const recAnо = data.copa_receitas
@@ -1136,6 +1278,39 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
   }
   const saveTr = async f => { await db.insert('copa_transferencias', { data: f.data, valor_brl: +f.valor_brl || 0, valor_eur: +f.valor_eur || 0, notas: f.notas }); reload(); setModal(null) }
 
+  const handleDayClick = (mesStr, info) => {
+    setCalendarModal({ mes: mesStr, info })
+  }
+
+  const handleCalendarSave = async (canal) => {
+    // Se canal for null, significa remover
+    if (!canal && calendarModal.info) {
+      // Remover a receita existente
+      await db.remove('copa_receitas', calendarModal.info.id)
+    } else if (canal) {
+      // Se já existe receita neste mês, atualizar; senão criar nova
+      if (calendarModal.info) {
+        // Atualizar receita existente
+        await db.update('copa_receitas', calendarModal.info.id, {
+          canal: canal,
+        })
+      } else {
+        // Adicionar nova receita para este mês
+        await db.insert('copa_receitas', {
+          mes: calendarModal.mes,
+          data: null,
+          descricao: 'Aluguel AP 812',
+          canal: canal,
+          valor_brl: 0,
+          taxa: 0.18,
+          estado: 'pago'
+        })
+      }
+    }
+    reload()
+    setCalendarModal(null)
+  }
+
   return (
     <>
       <div className="stat-grid">
@@ -1146,7 +1321,7 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
       </div>
       <div className="info-strip blue"><i className="ti ti-currency-real" /> Valores em BRL · Taxa referência: 1 BRL ≈ 0,18 EUR · Câmbio real por transferência</div>
       <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'desp', l: 'Despesas' }, { k: 'rec', l: 'Receitas' }, { k: 'res', l: 'Resumo Ano' }, { k: 'tr', l: 'Transf. PT' }]} active={tab} onChange={setTab} />
-      {tab === 'cal' && <><SecHead label="Calendário de ocupação 2026" onAdd={() => setModal('rec')} /><CalendarioCopa receitas={recAnо} /></>}
+      {tab === 'cal' && <><SecHead label="Calendário de ocupação 2026 (clica num dia para editar)" onAdd={() => setModal('rec')} /><CalendarioCopa receitas={recAnо} onDayClick={handleDayClick} /></>}
       {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal('desp')} /><Tbl table="copa_despesas" onSave={reload} cols={[
         { k: 'data', l: 'Data', edit: 'date' },
         { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] },
@@ -1156,15 +1331,113 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
       {tab === 'rec' && <><SecHead label={`Receitas — ${mesL(mes)}`} onAdd={() => setModal('rec')} /><Tbl table="copa_receitas" onSave={reload} cols={[
         { k: 'data', l: 'Data', edit: 'date' },
         { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
-        { k: 'canal', l: 'Canal', edit: 'select', options: ['RioHost','Booking','Airbnb','Directo'] },
+        { k: 'canal', l: 'Canal', edit: 'select', options: ['RioHost','Booking','Directo'] },
         { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl), edit: 'number' },
         { k: 'eur', l: '≈ EUR', r: true, fn: r => eur(r.valor_brl * (r.taxa || 0.18)) },
       ]} rows={recMes} /></>}
       {tab === 'res' && <><SecHead label="Resumo por mês 2026" /><Tbl cols={[{ k: 'mes', l: 'Mês', fn: r => mesL(r.mes), n: true }, { k: 'rec', l: 'Aluguel BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'desp', l: 'Despesas BRL', r: true, fn: r => brl(sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl')) }, { k: 'saldo', l: 'Saldo', r: true, fn: r => { const s = r.valor_brl - sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl'); return <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span> } }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={recAnо} /></>}
       {tab === 'tr' && <><SecHead label="Transferências BRL → EUR" onAdd={() => setModal('tr')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'notas', l: 'Referência', n: true }, { k: 'valor_brl', l: 'Enviado BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'valor_eur', l: 'Recebido EUR', r: true, fn: r => eur(r.valor_eur) }, { k: 'taxa', l: 'Taxa real', r: true, fn: r => r.valor_brl ? (r.valor_eur / r.valor_brl).toFixed(4) : '—' }]} rows={tr} /></>}
       {modal === 'desp' && <Drawer title="Nova despesa — Copa Rio" ac="var(--blue2)" fields={[{ k: 'dia', l: 'Dia', t: 'number', p: '1-31' }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }]} onClose={() => setModal(null)} onSave={async f => { const dataCompleta = f.dia ? `${mes}-${String(f.dia).padStart(2, '0')}` : null; await db.insert('copa_despesas', { mes, data: dataCompleta, categoria: f.categoria || 'outros', descricao: f.descricao, valor_brl: +f.valor_brl || 0 }); reload(); setModal(null) }} />}
-      {modal === 'rec' && <Drawer title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'dia', l: 'Dia', t: 'number', p: '1-31' }, { k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost','Booking','Airbnb','Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'taxa', l: 'Taxa câmbio', t: 'text', p: '0.18' }]} onClose={() => setModal(null)} onSave={saveRec} />}
+      {modal === 'rec' && <Drawer title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'dia', l: 'Dia', t: 'number', p: '1-31' }, { k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost','Booking','Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'taxa', l: 'Taxa câmbio', t: 'text', p: '0.18' }]} onClose={() => setModal(null)} onSave={saveRec} />}
       {modal === 'tr' && <Drawer title="Nova transferência BRL → EUR" ac="var(--blue2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'valor_brl', l: 'Valor enviado (BRL)', t: 'money' }, { k: 'valor_eur', l: 'Valor recebido (EUR)', t: 'money' }, { k: 'notas', l: 'Referência', t: 'text', p: 'Ex: Jan-Mar 2026' }]} onClose={() => setModal(null)} onSave={saveTr} />}
+
+      {calendarModal && (
+        <>
+          <style>{DRAWER_CSS}</style>
+          <div className="drawer-overlay" onClick={() => setCalendarModal(null)} />
+          <div className="drawer-panel" style={{ width: 'min(360px, 100vw)' }}>
+            <div className="drawer-hd">
+              <span className="drawer-hd-title">
+                {mesL(calendarModal.mes)}
+              </span>
+              <button className="drawer-close" onClick={() => setCalendarModal(null)}>×</button>
+            </div>
+            <div className="drawer-body" style={{ gap: 10 }}>
+              {calendarModal.info && (
+                <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.06em' }}>Canal actual</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
+                      background: COPA_CANAIS[calendarModal.info.canal]?.cor || 'var(--border)'
+                    }} />
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                      {calendarModal.info.canal}
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div className="dfl">{calendarModal.info ? 'Alterar para' : 'Escolher canal'}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {Object.entries(COPA_CANAIS).map(([k, v]) => (
+                  <button
+                    key={k}
+                    onClick={() => handleCalendarSave(k)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '12px 14px',
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                      background: 'var(--bg2)',
+                      cursor: 'pointer',
+                      transition: 'all .15s',
+                      fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = v.cor
+                      e.currentTarget.style.background = v.cor + '10'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      e.currentTarget.style.background = 'var(--bg2)'
+                    }}
+                  >
+                    <div style={{ width: 24, height: 24, borderRadius: 6, background: v.cor }} />
+                    <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{v.label}</span>
+                  </button>
+                ))}
+              </div>
+              {calendarModal.info && (
+                <>
+                  <div style={{ height: 1, background: 'var(--border)', margin: '12px 0' }} />
+                  <button
+                    onClick={() => handleCalendarSave(null)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      padding: '12px',
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                      background: 'var(--bg2)',
+                      cursor: 'pointer',
+                      transition: 'all .15s',
+                      fontFamily: 'inherit',
+                      color: 'var(--red2)',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = 'var(--red2)'
+                      e.currentTarget.style.background = '#FEF2F2'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      e.currentTarget.style.background = 'var(--bg2)'
+                    }}
+                  >
+                    <i className="ti ti-trash" style={{ fontSize: 16 }} />
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>Remover receita</span>
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </>
   )
 }
