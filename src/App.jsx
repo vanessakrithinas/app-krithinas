@@ -554,7 +554,7 @@ function Dashboard({ data, mes }) {
         <StatCard label={`Copa — saldo ${mesL(mes)}`} value={brl(cR - cD)} sub={`≈ ${eur((cR - cD) * 0.18)} est.`} ac="var(--blue2)" />
         <StatCard label="Transferido PT" value={eur(sum(data.copa_transferencias, 'valor_eur'))} sub={`${data.copa_transferencias.length} transf.`} ac="var(--blue2)" />
         <StatCard label="Villa — reservas" value={`${data.villa_reservas.length} confirmadas`} sub="2026" ac="var(--green2)" />
-        <StatCard label="Villa — encargos" value={eur(vild)} sub={mesL(mes)} ac="var(--green2)" />
+        <StatCard label="Villa — despesas" value={eur(vild)} sub={mesL(mes)} ac="var(--green2)" />
       </div>
       <SecHead label={`Despesas por centro — ${mesL(mes)}`} />
       {[
@@ -1072,12 +1072,12 @@ function VillaPage({ data, mes, reload, tab, setTab }) {
     <>
       <div className="stat-grid">
         <StatCard label={`Receita ${mesL(mes)}`} value={eur(tr)} sub={`${resMes.length} reservas`} ac="var(--green2)" />
-        <StatCard label={`Encargos ${mesL(mes)}`} value={eur(td)} sub="via Mãezona · Vilamoura" ac="var(--red2)" />
+        <StatCard label={`Despesas ${mesL(mes)}`} value={eur(td)} sub="via Mãezona · Vilamoura" ac="var(--red2)" />
         <StatCard label="Resultado" value={<Chip v={tr - td} />} sub={mesL(mes)} ac="var(--green2)" />
         <StatCard label="Noites alugadas" value={`${noitesAnо} noites`} sub="2026" ac="var(--green2)" />
       </div>
       <div className="info-strip teal"><i className="ti ti-info-circle" /> Agosto: 650€/sem · 85€/dia &nbsp;|&nbsp; Outros meses: 600€/sem · 80€/dia</div>
-      <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'res', l: 'Reservas mês' }, { k: 'all', l: 'Todas as Reservas' }, { k: 'desp', l: 'Encargos Fixos' }]} active={tab} onChange={setTab} />
+      <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'res', l: 'Reservas mês' }, { k: 'all', l: 'Todas as Reservas' }, { k: 'desp', l: 'Despesas' }]} active={tab} onChange={setTab} />
       {tab === 'cal' && <><SecHead label="Calendário de ocupação 2026" onAdd={() => setModal('res')} /><CalendarioVilla reservas={resAnо} /></>}
       {tab === 'res' && <><SecHead label={`Reservas — ${mesL(mes)}`} onAdd={() => setModal('res')} /><Tbl table="villa_reservas" onSave={reload} cols={[
         { k: 'entrada', l: 'Check-in', edit: 'date' },
@@ -1100,13 +1100,12 @@ function VillaPage({ data, mes, reload, tab, setTab }) {
       ]} rows={resAnо} /></>}
       {tab === 'desp' && (
         <>
-          <SecHead label={`Encargos Vilamoura — ${mesL(mes)}`} />
+          <SecHead label={`Despesas Vilamoura — ${mesL(mes)}`} />
           <div className="info-strip teal" style={{ marginBottom: 12 }}><i className="ti ti-info-circle" /> Geridos em Mãezona · Vilamoura. Para adicionar ou editar, usa a página da Mãezona.</div>
           <Tbl cols={[
             { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} /> },
             { k: 'descricao', l: 'Descrição', n: true },
             { k: 'valor', l: 'Valor', r: true, fn: r => eur(r.valor) },
-            { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> },
           ]} rows={desp} />
         </>
       )}
@@ -1129,7 +1128,7 @@ function CopaPage({ data, mes, reload, tab, setTab }) {
 
   const saveRec = async f => {
     const dataCompleta = f.dia ? `${mes}-${String(f.dia).padStart(2, '0')}` : null
-    await db.insert('copa_receitas', { mes, data: dataCompleta, descricao: f.descricao || 'Aluguel AP 812', canal: f.canal || 'RioHost', valor_brl: +f.valor_brl || 0, taxa: +f.taxa || 0.18, estado: f.estado || 'recebido' });
+    await db.insert('copa_receitas', { mes, data: dataCompleta, descricao: f.descricao || 'Aluguel AP 812', canal: f.canal || 'RioHost', valor_brl: +f.valor_brl || 0, taxa: +f.taxa || 0.18 });
     reload();
     setModal(null)
   }
@@ -1151,7 +1150,6 @@ function CopaPage({ data, mes, reload, tab, setTab }) {
         { k: 'categoria', l: 'Categoria', fn: r => <CatBadge cat={r.categoria} />, edit: 'select', options: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] },
         { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
         { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl), edit: 'number' },
-        { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['pago','pendente'] },
       ]} rows={despMes} /></>}
       {tab === 'rec' && <><SecHead label={`Receitas — ${mesL(mes)}`} onAdd={() => setModal('rec')} /><Tbl table="copa_receitas" onSave={reload} cols={[
         { k: 'data', l: 'Data', edit: 'date' },
@@ -1159,12 +1157,11 @@ function CopaPage({ data, mes, reload, tab, setTab }) {
         { k: 'canal', l: 'Canal', edit: 'select', options: ['RioHost','Booking','Airbnb','Directo'] },
         { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl), edit: 'number' },
         { k: 'eur', l: '≈ EUR', r: true, fn: r => eur(r.valor_brl * (r.taxa || 0.18)) },
-        { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['recebido','pendente'] },
       ]} rows={recMes} /></>}
       {tab === 'res' && <><SecHead label="Resumo por mês 2026" /><Tbl cols={[{ k: 'mes', l: 'Mês', fn: r => mesL(r.mes), n: true }, { k: 'rec', l: 'Aluguel BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'desp', l: 'Despesas BRL', r: true, fn: r => brl(sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl')) }, { k: 'saldo', l: 'Saldo', r: true, fn: r => { const s = r.valor_brl - sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl'); return <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span> } }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={recAnо} /></>}
       {tab === 'tr' && <><SecHead label="Transferências BRL → EUR" onAdd={() => setModal('tr')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'notas', l: 'Referência', n: true }, { k: 'valor_brl', l: 'Enviado BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'valor_eur', l: 'Recebido EUR', r: true, fn: r => eur(r.valor_eur) }, { k: 'taxa', l: 'Taxa real', r: true, fn: r => r.valor_brl ? (r.valor_eur / r.valor_brl).toFixed(4) : '—' }]} rows={tr} /></>}
-      {modal === 'desp' && <Drawer title="Nova despesa — Copa Rio" ac="var(--blue2)" fields={[{ k: 'dia', l: 'Dia', t: 'number', p: '1-31' }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['pago','pendente'] }]} onClose={() => setModal(null)} onSave={async f => { const dataCompleta = f.dia ? `${mes}-${String(f.dia).padStart(2, '0')}` : null; await db.insert('copa_despesas', { mes, data: dataCompleta, categoria: f.categoria || 'outros', descricao: f.descricao, valor_brl: +f.valor_brl || 0, estado: f.estado || 'pago' }); reload(); setModal(null) }} />}
-      {modal === 'rec' && <Drawer title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'dia', l: 'Dia', t: 'number', p: '1-31' }, { k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost','Booking','Airbnb','Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'taxa', l: 'Taxa câmbio', t: 'text', p: '0.18' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['recebido','pendente'] }]} onClose={() => setModal(null)} onSave={saveRec} />}
+      {modal === 'desp' && <Drawer title="Nova despesa — Copa Rio" ac="var(--blue2)" fields={[{ k: 'dia', l: 'Dia', t: 'number', p: '1-31' }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }]} onClose={() => setModal(null)} onSave={async f => { const dataCompleta = f.dia ? `${mes}-${String(f.dia).padStart(2, '0')}` : null; await db.insert('copa_despesas', { mes, data: dataCompleta, categoria: f.categoria || 'outros', descricao: f.descricao, valor_brl: +f.valor_brl || 0 }); reload(); setModal(null) }} />}
+      {modal === 'rec' && <Drawer title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'dia', l: 'Dia', t: 'number', p: '1-31' }, { k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost','Booking','Airbnb','Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'taxa', l: 'Taxa câmbio', t: 'text', p: '0.18' }]} onClose={() => setModal(null)} onSave={saveRec} />}
       {modal === 'tr' && <Drawer title="Nova transferência BRL → EUR" ac="var(--blue2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'valor_brl', l: 'Valor enviado (BRL)', t: 'money' }, { k: 'valor_eur', l: 'Valor recebido (EUR)', t: 'money' }, { k: 'notas', l: 'Referência', t: 'text', p: 'Ex: Jan-Mar 2026' }]} onClose={() => setModal(null)} onSave={saveTr} />}
     </>
   )
