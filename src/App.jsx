@@ -642,7 +642,7 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
         <StatCard
           label={`Rendimentos ${mesL(mes)}`}
           value={eur(tr + tf)}
-          sub={`Bauer ${eur(salario)} · Avenças ${eur(sum(rend.filter(x => x.tipo === 'Avença'), 'valor'))} · Freelance ${eur(tf)} · Abono ${eur(sum(rend.filter(x => x.tipo === 'Abono'), 'valor'))}`}
+          sub={`Bauer ${eur(salario)} · Freelance ${eur(tf)} · Abono ${eur(sum(rend.filter(x => x.tipo === 'Abono'), 'valor'))}`}
           ac="var(--gold2)"
         />
         <StatCard label={`Despesas ${mesL(mes)}`} value={eur(td)} ac="var(--red2)" />
