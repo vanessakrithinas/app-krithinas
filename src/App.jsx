@@ -84,12 +84,12 @@ function Chip({ v }) {
   return <span className={`chip ${v >= 0 ? 'pos' : 'neg'}`}>{v >= 0 ? '↑' : '↓'} {eur(Math.abs(v))}</span>
 }
 
-function StatCard({ label, value, sub, ac = 'var(--gold2)' }) {
+function StatCard({ label, value, sub, ac = 'var(--gold2)', blur = false }) {
   return (
     <div className="stat-card" style={{ '--ac2': ac }}>
       <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
-      {sub && <div className="stat-sub">{sub}</div>}
+      <div className="stat-value" style={{ filter: blur ? 'blur(8px)' : 'none', transition: 'filter .2s' }}>{value}</div>
+      {sub && <div className="stat-sub" style={{ filter: blur ? 'blur(6px)' : 'none', transition: 'filter .2s' }}>{sub}</div>}
     </div>
   )
 }
@@ -532,7 +532,7 @@ function DrawerFreelance({ onClose, onSave, ac = 'var(--gold2)' }) {
 // PAGES
 // ══════════════════════════════════════════════════════════════════════════
 
-function Dashboard({ data, mes }) {
+function Dashboard({ data, mes, blur = false }) {
   const vr = sum(data.vanessa_rendimentos.filter(x => x.mes === mes), 'valor')
   const vd = sum(data.vanessa_despesas.filter(x => x.mes === mes), 'valor')
   const md = sum(data.maezona_despesas.filter(x => x.mes === mes), 'valor')
@@ -545,16 +545,16 @@ function Dashboard({ data, mes }) {
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Rendimento Vanessa" value={eur(vr)} sub={mesL(mes)} ac="var(--gold2)" />
-        <StatCard label="Despesas família PT" value={eur(vd + md + mld)} sub="Vanessa · Mãe · Milton" ac="var(--red2)" />
-        <StatCard label="Saldo Vanessa" value={<Chip v={vr - vd} />} sub={mesL(mes)} ac="var(--gold2)" />
-        <StatCard label="Concertos Milton" value={eur(tc)} sub={`${data.milton_concertos.length} actuações`} ac="var(--violet2)" />
+        <StatCard label="Rendimento Vanessa" value={eur(vr)} sub={mesL(mes)} ac="var(--gold2)" blur={blur} />
+        <StatCard label="Despesas família PT" value={eur(vd + md + mld)} sub="Vanessa · Mãe · Milton" ac="var(--red2)" blur={blur} />
+        <StatCard label="Saldo Vanessa" value={<Chip v={vr - vd} />} sub={mesL(mes)} ac="var(--gold2)" blur={blur} />
+        <StatCard label="Concertos Milton" value={eur(tc)} sub={`${data.milton_concertos.length} actuações`} ac="var(--violet2)" blur={blur} />
       </div>
       <div className="stat-grid">
-        <StatCard label={`Copa — saldo ${mesL(mes)}`} value={brl(cR - cD)} sub={`≈ ${eur((cR - cD) * 0.18)} est.`} ac="var(--blue2)" />
-        <StatCard label="Transferido PT" value={eur(sum(data.copa_transferencias, 'valor_eur'))} sub={`${data.copa_transferencias.length} transf.`} ac="var(--blue2)" />
-        <StatCard label="Villa — reservas" value={`${data.villa_reservas.length} confirmadas`} sub="2026" ac="var(--green2)" />
-        <StatCard label="Villa — despesas" value={eur(vild)} sub={mesL(mes)} ac="var(--green2)" />
+        <StatCard label={`Copa — saldo ${mesL(mes)}`} value={brl(cR - cD)} sub={`≈ ${eur((cR - cD) * 0.18)} est.`} ac="var(--blue2)" blur={blur} />
+        <StatCard label="Transferido PT" value={eur(sum(data.copa_transferencias, 'valor_eur'))} sub={`${data.copa_transferencias.length} transf.`} ac="var(--blue2)" blur={blur} />
+        <StatCard label="Villa — reservas" value={`${data.villa_reservas.length} confirmadas`} sub="2026" ac="var(--green2)" blur={blur} />
+        <StatCard label="Villa — despesas" value={eur(vild)} sub={mesL(mes)} ac="var(--green2)" blur={blur} />
       </div>
       <SecHead label={`Despesas por centro — ${mesL(mes)}`} />
       {[
@@ -585,7 +585,7 @@ function Dashboard({ data, mes }) {
   )
 }
 
-function VanessaPage({ data, mes, reload, tab, setTab }) {
+function VanessaPage({ data, mes, reload, tab, setTab, blur = false }) {
   const [drawer, setDrawer] = useState(false)
   const [modal, setModal] = useState(null)
   const [catFiltro, setCatFiltro] = useState('todas')
@@ -644,9 +644,10 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
           value={eur(tr + tf)}
           sub={`Bauer ${eur(salario)} · Freelance ${eur(tf)} · Abono ${eur(sum(rend.filter(x => x.tipo === 'Abono'), 'valor'))}`}
           ac="var(--gold2)"
+          blur={blur}
         />
-        <StatCard label={`Despesas ${mesL(mes)}`} value={eur(td)} ac="var(--red2)" />
-        <StatCard label="Saldo" value={<Chip v={tr + tf - td} />} sub={mesL(mes)} ac="var(--gold2)" />
+        <StatCard label={`Despesas ${mesL(mes)}`} value={eur(td)} ac="var(--red2)" blur={blur} />
+        <StatCard label="Saldo" value={<Chip v={tr + tf - td} />} sub={mesL(mes)} ac="var(--gold2)" blur={blur} />
       </div>
       <Tabs items={[{ k: 'desp', l: 'Despesas' }, { k: 'rend', l: 'Rendimentos' }, { k: 'free', l: 'Freelance' }]} active={tab} onChange={t => { setTab(t); setCatFiltro('todas') }} />
 
@@ -723,7 +724,7 @@ function VanessaPage({ data, mes, reload, tab, setTab }) {
   )
 }
 
-function MaezonaPage({ data, mes, reload, tab, setTab }) {
+function MaezonaPage({ data, mes, reload, tab, setTab, blur = false }) {
   const [prop, setProp] = useState('todos')
   const [modal, setModal] = useState(false)
   const all = data.maezona_despesas.filter(x => x.mes === mes)
@@ -745,10 +746,10 @@ function MaezonaPage({ data, mes, reload, tab, setTab }) {
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Rendimentos" value={eur(tr)} sub={mesL(mes)} ac="var(--teal2)" />
-        <StatCard label={`Despesas ${mesL(mes)}`} value={eur(td)} ac="var(--red2)" />
-        <StatCard label="Saldo" value={<Chip v={tr - td} />} sub={mesL(mes)} ac="var(--teal2)" />
-        <StatCard label="Queluz + Vilamoura" value={eur(q + v)} sub="casas" ac="var(--teal2)" />
+        <StatCard label="Rendimentos" value={eur(tr)} sub={mesL(mes)} ac="var(--teal2)" blur={blur} />
+        <StatCard label={`Despesas ${mesL(mes)}`} value={eur(td)} ac="var(--red2)" blur={blur} />
+        <StatCard label="Saldo" value={<Chip v={tr - td} />} sub={mesL(mes)} ac="var(--teal2)" blur={blur} />
+        <StatCard label="Queluz + Vilamoura" value={eur(q + v)} sub="casas" ac="var(--teal2)" blur={blur} />
       </div>
       <Tabs items={[{ k: 'desp', l: 'Despesas' }, { k: 'rend', l: 'Rendimentos' }]} active={tab} onChange={t => { setTab(t); setProp('todos') }} />
       {tab === 'desp' && (
@@ -785,7 +786,7 @@ function MaezonaPage({ data, mes, reload, tab, setTab }) {
   )
 }
 
-function MiltonPage({ data, mes, reload, tab, setTab }) {
+function MiltonPage({ data, mes, reload, tab, setTab, blur = false }) {
   const [modal, setModal] = useState(null)
   const desp = data.milton_despesas.filter(x => x.mes === mes)
   const concMes = data.milton_concertos.filter(x => x.data && x.data.startsWith(mes))
@@ -796,10 +797,10 @@ function MiltonPage({ data, mes, reload, tab, setTab }) {
   return (
     <>
       <div className="stat-grid">
-        <StatCard label={`Recebimentos ${mesL(mes)}`} value={eur(sum(concMes, 'valor'))} sub={`${concMes.length} actuações`} ac="var(--violet2)" />
-        <StatCard label="IVA do mês" value={eur(sum(concMes, 'iva'))} ac="var(--violet2)" />
-        <StatCard label={`Despesas ${mesL(mes)}`} value={eur(sum(desp, 'valor'))} ac="var(--red2)" />
-        <StatCard label="Total ano" value={eur(sum(concAno, 'valor'))} sub={`${concAno.length} actuações`} ac="var(--violet2)" />
+        <StatCard label={`Recebimentos ${mesL(mes)}`} value={eur(sum(concMes, 'valor'))} sub={`${concMes.length} actuações`} ac="var(--violet2)" blur={blur} />
+        <StatCard label="IVA do mês" value={eur(sum(concMes, 'iva'))} ac="var(--violet2)" blur={blur} />
+        <StatCard label={`Despesas ${mesL(mes)}`} value={eur(sum(desp, 'valor'))} ac="var(--red2)" blur={blur} />
+        <StatCard label="Total ano" value={eur(sum(concAno, 'valor'))} sub={`${concAno.length} actuações`} ac="var(--violet2)" blur={blur} />
       </div>
       <Tabs items={[{ k: 'conc', l: 'Concertos & Recibos' }, { k: 'desp', l: 'Despesas Casa Belas' }]} active={tab} onChange={setTab} />
       {tab === 'conc' && <><SecHead label={`Recibos verdes — ${mesL(mes)}`} onAdd={() => setModal('conc')} /><Tbl table="milton_concertos" onSave={reload} cols={[
@@ -1056,7 +1057,7 @@ function CalendarioCopa({ receitas }) {
   )
 }
 
-function VillaPage({ data, mes, reload, tab, setTab }) {
+function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
   const [modal, setModal] = useState(null)
   const resAnо = data.villa_reservas
   const resMes = data.villa_reservas.filter(r => r.entrada && r.entrada.startsWith(mes))
@@ -1071,10 +1072,10 @@ function VillaPage({ data, mes, reload, tab, setTab }) {
   return (
     <>
       <div className="stat-grid">
-        <StatCard label={`Receita ${mesL(mes)}`} value={eur(tr)} sub={`${resMes.length} reservas`} ac="var(--green2)" />
-        <StatCard label={`Despesas ${mesL(mes)}`} value={eur(td)} sub="via Mãezona · Vilamoura" ac="var(--red2)" />
-        <StatCard label="Resultado" value={<Chip v={tr - td} />} sub={mesL(mes)} ac="var(--green2)" />
-        <StatCard label="Noites alugadas" value={`${noitesAnо} noites`} sub="2026" ac="var(--green2)" />
+        <StatCard label={`Receita ${mesL(mes)}`} value={eur(tr)} sub={`${resMes.length} reservas`} ac="var(--green2)" blur={blur} />
+        <StatCard label={`Despesas ${mesL(mes)}`} value={eur(td)} sub="via Mãezona · Vilamoura" ac="var(--red2)" blur={blur} />
+        <StatCard label="Resultado" value={<Chip v={tr - td} />} sub={mesL(mes)} ac="var(--green2)" blur={blur} />
+        <StatCard label="Noites alugadas" value={`${noitesAnо} noites`} sub="2026" ac="var(--green2)" blur={blur} />
       </div>
       <div className="info-strip teal"><i className="ti ti-info-circle" /> Agosto: 650€/sem · 85€/dia &nbsp;|&nbsp; Outros meses: 600€/sem · 80€/dia</div>
       <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'res', l: 'Reservas mês' }, { k: 'all', l: 'Todas as Reservas' }, { k: 'desp', l: 'Despesas' }]} active={tab} onChange={setTab} />
@@ -1114,7 +1115,7 @@ function VillaPage({ data, mes, reload, tab, setTab }) {
   )
 }
 
-function CopaPage({ data, mes, reload, tab, setTab }) {
+function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
   const [modal, setModal] = useState(null)
   const recMes = data.copa_receitas.filter(x => x.mes === mes)
   const despMes = data.copa_despesas.filter(x => x.mes === mes)
@@ -1137,10 +1138,10 @@ function CopaPage({ data, mes, reload, tab, setTab }) {
   return (
     <>
       <div className="stat-grid">
-        <StatCard label={`Receita ${mesL(mes)}`} value={brl(tRmes)} sub={recMes.length ? recMes[0].canal : '—'} ac="var(--blue2)" />
-        <StatCard label={`Despesas ${mesL(mes)}`} value={brl(tDmes)} ac="var(--red2)" />
-        <StatCard label={`Saldo ${mesL(mes)}`} value={brl(tRmes - tDmes)} ac={tRmes - tDmes >= 0 ? 'var(--green2)' : 'var(--red2)'} />
-        <StatCard label="Transferido PT" value={eur(sum(tr, 'valor_eur'))} sub={`${tr.length} transf.`} ac="var(--blue2)" />
+        <StatCard label={`Receita ${mesL(mes)}`} value={brl(tRmes)} sub={recMes.length ? recMes[0].canal : '—'} ac="var(--blue2)" blur={blur} />
+        <StatCard label={`Despesas ${mesL(mes)}`} value={brl(tDmes)} ac="var(--red2)" blur={blur} />
+        <StatCard label={`Saldo ${mesL(mes)}`} value={brl(tRmes - tDmes)} ac={tRmes - tDmes >= 0 ? 'var(--green2)' : 'var(--red2)'} blur={blur} />
+        <StatCard label="Transferido PT" value={eur(sum(tr, 'valor_eur'))} sub={`${tr.length} transf.`} ac="var(--blue2)" blur={blur} />
       </div>
       <div className="info-strip blue"><i className="ti ti-currency-real" /> Valores em BRL · Taxa referência: 1 BRL ≈ 0,18 EUR · Câmbio real por transferência</div>
       <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'desp', l: 'Despesas' }, { k: 'rec', l: 'Receitas' }, { k: 'res', l: 'Resumo Ano' }, { k: 'tr', l: 'Transf. PT' }]} active={tab} onChange={setTab} />
@@ -1193,6 +1194,7 @@ export default function App() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [valuesVisible, setValuesVisible] = useState(true)
   const [vanessaTab, setVanessaTab] = useState(() => getInitialTab('vanessa', ['desp','rend','free']))
   const [maezonaTab, setMaezonaTab] = useState(() => getInitialTab('maezona', ['desp','rend']))
   const [miltonTab,  setMiltonTab]  = useState(() => getInitialTab('milton',  ['conc','desp']))
@@ -1235,12 +1237,12 @@ export default function App() {
   const n = NAV.find(x => x.k === page)
 
   const PAGES = {
-    dash:    data ? <Dashboard data={data} mes={mes} /> : null,
-    vanessa: data ? <VanessaPage data={data} mes={mes} reload={() => load(true)} tab={vanessaTab} setTab={makeSetTab('vanessa', setVanessaTab)} /> : null,
-    maezona: data ? <MaezonaPage data={data} mes={mes} reload={() => load(true)} tab={maezonaTab} setTab={makeSetTab('maezona', setMaezonaTab)} /> : null,
-    milton:  data ? <MiltonPage  data={data} mes={mes} reload={() => load(true)} tab={miltonTab}  setTab={makeSetTab('milton',  setMiltonTab)}  /> : null,
-    villa:   data ? <VillaPage   data={data} mes={mes} reload={() => load(true)} tab={villaTab}   setTab={makeSetTab('villa',   setVillaTab)}   /> : null,
-    copa:    data ? <CopaPage    data={data} mes={mes} reload={() => load(true)} tab={copaTab}    setTab={makeSetTab('copa',    setCopaTab)}    /> : null,
+    dash:    data ? <Dashboard data={data} mes={mes} blur={!valuesVisible} /> : null,
+    vanessa: data ? <VanessaPage data={data} mes={mes} reload={() => load(true)} tab={vanessaTab} setTab={makeSetTab('vanessa', setVanessaTab)} blur={!valuesVisible} /> : null,
+    maezona: data ? <MaezonaPage data={data} mes={mes} reload={() => load(true)} tab={maezonaTab} setTab={makeSetTab('maezona', setMaezonaTab)} blur={!valuesVisible} /> : null,
+    milton:  data ? <MiltonPage  data={data} mes={mes} reload={() => load(true)} tab={miltonTab}  setTab={makeSetTab('milton',  setMiltonTab)}  blur={!valuesVisible} /> : null,
+    villa:   data ? <VillaPage   data={data} mes={mes} reload={() => load(true)} tab={villaTab}   setTab={makeSetTab('villa',   setVillaTab)}   blur={!valuesVisible} /> : null,
+    copa:    data ? <CopaPage    data={data} mes={mes} reload={() => load(true)} tab={copaTab}    setTab={makeSetTab('copa',    setCopaTab)}    blur={!valuesVisible} /> : null,
   }
 
   return (
@@ -1290,6 +1292,26 @@ export default function App() {
           </div>
           <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <TopbarClock />
+            <button
+              onClick={() => setValuesVisible(!valuesVisible)}
+              style={{
+                background: 'var(--surface)',
+                border: '1px solid var(--border2)',
+                borderRadius: '50%',
+                width: 36,
+                height: 36,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: valuesVisible ? 'var(--text2)' : 'var(--gold2)',
+                transition: 'all .2s',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+              title={valuesVisible ? 'Ocultar valores' : 'Mostrar valores'}
+            >
+              <i className={`ti ${valuesVisible ? 'ti-eye' : 'ti-eye-off'}`} style={{ fontSize: 18 }} />
+            </button>
             <MonthSelector mes={mes} onChange={m => navigate(null, m)} />
           </div>
         </header>
