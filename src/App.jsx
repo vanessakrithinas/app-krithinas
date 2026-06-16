@@ -534,6 +534,7 @@ function DrawerFreelance({ onClose, onSave, ac = 'var(--gold2)' }) {
 
 function Dashboard({ data, mes, blur = false }) {
   const vr = sum(data.vanessa_rendimentos.filter(x => x.mes === mes), 'valor')
+  const vf = sum(data.vanessa_freelancers.filter(x => x.data && x.data.startsWith(mes)), 'valor')
   const vd = sum(data.vanessa_despesas.filter(x => x.mes === mes), 'valor')
   const md = sum(data.maezona_despesas.filter(x => x.mes === mes), 'valor')
   const mld = sum(data.milton_despesas.filter(x => x.mes === mes), 'valor')
@@ -545,9 +546,9 @@ function Dashboard({ data, mes, blur = false }) {
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Rendimento Vanessa" value={eur(vr)} sub={mesL(mes)} ac="var(--gold2)" blur={blur} />
+        <StatCard label="Rendimento Vanessa" value={eur(vr + vf)} sub={`${mesL(mes)} · inc. freelance`} ac="var(--gold2)" blur={blur} />
         <StatCard label="Despesas família PT" value={eur(vd + md + mld)} sub="Vanessa · Mãe · Milton" ac="var(--red2)" blur={blur} />
-        <StatCard label="Saldo Vanessa" value={<Chip v={vr - vd} />} sub={mesL(mes)} ac="var(--gold2)" blur={blur} />
+        <StatCard label="Saldo Vanessa" value={<Chip v={vr + vf - vd} />} sub={mesL(mes)} ac="var(--gold2)" blur={blur} />
         <StatCard label="Concertos Milton" value={eur(tc)} sub={`${data.milton_concertos.length} actuações`} ac="var(--violet2)" blur={blur} />
       </div>
       <div className="stat-grid">
