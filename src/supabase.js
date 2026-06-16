@@ -8,22 +8,26 @@ export const supabase = createClient(url, key)
 // ── helpers ────────────────────────────────────────────────────────────────
 export const db = {
   async get(table, filters = {}) {
-    // Ordenar por data (descendente) se a coluna existir, caso contrário por id
     let q = supabase.from(table).select('*')
 
-    // Tabelas que têm coluna 'data'
-    const tablesWithData = [
-      'vanessa_despesas', 'vanessa_rendimentos',
-      'maezona_despesas', 'maezona_rendimentos',
-      'milton_despesas', 'milton_concertos',
-      'copa_despesas', 'copa_receitas', 'copa_transferencias',
-      'villa_reservas'
-    ]
-
-    if (tablesWithData.includes(table)) {
-      q = q.order('data', { ascending: false, nullsFirst: false }).order('id', { ascending: false })
+    // Ordenar por data ou entrada, dependendo da tabela
+    if (table === 'villa_reservas') {
+      // Villa usa 'entrada' em vez de 'data'
+      q = q.order('entrada', { ascending: false, nullsFirst: false }).order('id', { ascending: false })
     } else {
-      q = q.order('id', { ascending: false })
+      // Estas tabelas têm coluna 'data'
+      const tablesWithData = [
+        'vanessa_despesas', 'vanessa_rendimentos', 'vanessa_freelancers',
+        'maezona_despesas', 'maezona_rendimentos',
+        'milton_despesas', 'milton_concertos',
+        'copa_despesas', 'copa_receitas', 'copa_transferencias'
+      ]
+
+      if (tablesWithData.includes(table)) {
+        q = q.order('data', { ascending: false, nullsFirst: false }).order('id', { ascending: false })
+      } else {
+        q = q.order('id', { ascending: false })
+      }
     }
 
     for (const [col, val] of Object.entries(filters)) q = q.eq(col, val)
