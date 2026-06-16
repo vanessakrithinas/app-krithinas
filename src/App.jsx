@@ -844,7 +844,7 @@ function CalendarioVilla({ reservas, onDayClick }) {
     const dateStr = `${ano}-${String(mes0+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`
     for (const r of reservas) {
       if (!r.entrada || !r.saida) continue
-      if (dateStr >= r.entrada && dateStr < r.saida) {
+      if (dateStr >= r.entrada && dateStr <= r.saida) {
         // Jonhy: identificado pelo nome no tipo ou no campo inquilino
         const isJonhy = (r.inquilino || '').toLowerCase().includes('jonh') || (r.tipo || '').toLowerCase().includes('jonh')
         const tipo = isJonhy ? 'Jonhy' : (r.tipo || 'Irasine')
@@ -1084,23 +1084,81 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
   }
 
   const handleCalendarSave = async (tipo) => {
-    // Se tipo for null, significa remover
+    const clickedDate = calendarModal.date
+
+    // Se tipo for null, significa remover este dia específico
     if (!tipo && calendarModal.info) {
-      // Remover a reserva existente
-      await db.remove('villa_reservas', calendarModal.info.r.id)
-    } else if (tipo) {
-      // Se já existe reserva neste dia, atualizar; senão criar nova
-      if (calendarModal.info && calendarModal.info.r) {
-        // Atualizar reserva existente
-        await db.update('villa_reservas', calendarModal.info.r.id, {
-          tipo: tipo,
-          inquilino: tipo,
-        })
+      const reserva = calendarModal.info.r
+      const entrada = reserva.entrada
+      const saida = reserva.saida
+
+      // Se a reserva é de 1 dia apenas, remover completamente
+      if (entrada === clickedDate && saida === clickedDate) {
+        await db.remove('villa_reservas', reserva.id)
       } else {
-        // Adicionar nova reserva para este dia
+        // Reserva multi-dia: dividir em dias individuais e remover o dia clicado
+        const start = new Date(entrada)
+        const end = new Date(saida)
+
+        // Remover a reserva original
+        await db.remove('villa_reservas', reserva.id)
+
+        // Recriar os dias exceto o dia clicado
+        for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+          const dayStr = d.toISOString().slice(0, 10)
+          if (dayStr !== clickedDate) {
+            await db.insert('villa_reservas', {
+              entrada: dayStr,
+              saida: dayStr,
+              tipo: reserva.tipo,
+              inquilino: reserva.inquilino,
+              canal: reserva.canal || 'Directo',
+              valor: 0,
+              estado: reserva.estado || 'confirmado'
+            })
+          }
+        }
+      }
+    } else if (tipo) {
+      // Se já existe reserva neste dia, precisamos dividir a reserva
+      if (calendarModal.info && calendarModal.info.r) {
+        const reserva = calendarModal.info.r
+        const entrada = reserva.entrada
+        const saida = reserva.saida
+
+        // Se a reserva é de 1 dia apenas, simplesmente atualizar
+        if (entrada === clickedDate && saida === clickedDate) {
+          await db.update('villa_reservas', reserva.id, {
+            tipo: tipo,
+            inquilino: tipo,
+          })
+        } else {
+          // Reserva multi-dia: dividir em dias individuais
+          const start = new Date(entrada)
+          const end = new Date(saida)
+
+          // Remover a reserva original
+          await db.remove('villa_reservas', reserva.id)
+
+          // Recriar os dias com o tipo apropriado
+          for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+            const dayStr = d.toISOString().slice(0, 10)
+            await db.insert('villa_reservas', {
+              entrada: dayStr,
+              saida: dayStr,
+              tipo: dayStr === clickedDate ? tipo : reserva.tipo,
+              inquilino: dayStr === clickedDate ? tipo : reserva.inquilino,
+              canal: reserva.canal || 'Directo',
+              valor: 0,
+              estado: reserva.estado || 'confirmado'
+            })
+          }
+        }
+      } else {
+        // Adicionar nova reserva para este dia (1 dia apenas)
         await db.insert('villa_reservas', {
-          entrada: calendarModal.date,
-          saida: calendarModal.date, // 1 dia apenas
+          entrada: clickedDate,
+          saida: clickedDate,
           tipo: tipo,
           inquilino: tipo,
           canal: 'Directo',
