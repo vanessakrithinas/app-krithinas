@@ -857,14 +857,12 @@ function CalendarioVilla({ reservas, onDayClick }) {
   const cellW = 28
   const cellH = 26
   const labelW = 90
-  const headerH = 28
+  const headerH = 0
   const rowH = cellH + 2
   const maxDias = 31
   const svgW = labelW + maxDias * cellW + 2
   const svgH = headerH + 12 * rowH + 48
 
-  // cabeçalho dias da semana: usar Jan 2026 como referência (1 Jan = Quinta)
-  // renderizar número do dia + cor de fundo
   return (
     <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
       <svg width={svgW} height={svgH} style={{ fontFamily: 'DM Sans, sans-serif', display: 'block' }}>
@@ -934,21 +932,6 @@ function CalendarioVilla({ reservas, onDayClick }) {
             </g>
           )
         })}
-
-        {/* cabeçalho com dia da semana de cada coluna (baseado em Jan 2026) */}
-        {Array.from({ length: maxDias }, (_, d) => {
-          const refDate = new Date(ano, 0, d + 1)
-          const dow = refDate.getDay()
-          const isWeekend = dow === 0 || dow === 6
-          return (
-            <text key={d} x={labelW + d * cellW + (cellW - 1) / 2} y={headerH - 6}
-              fontSize={9} textAnchor="middle"
-              fill={isWeekend ? 'var(--text)' : 'var(--text2)'}
-              fontWeight={isWeekend ? 600 : 400}>
-              {diasSemana[dow]}
-            </text>
-          )
-        })}
       </svg>
     </div>
   )
@@ -979,7 +962,7 @@ function CalendarioCopa({ receitas, onDayClick }) {
   const cellW = 28
   const cellH = 26
   const labelW = 90
-  const headerH = 28
+  const headerH = 0
   const rowH = cellH + 2
   const maxDias = 31
   const svgW = labelW + maxDias * cellW + 2
@@ -1045,20 +1028,6 @@ function CalendarioCopa({ receitas, onDayClick }) {
                 )
               })}
             </g>
-          )
-        })}
-
-        {Array.from({ length: maxDias }, (_, d) => {
-          const refDate = new Date(ano, 0, d + 1)
-          const dow = refDate.getDay()
-          const isWeekend = dow === 0 || dow === 6
-          return (
-            <text key={d} x={labelW + d * cellW + (cellW - 1) / 2} y={headerH - 6}
-              fontSize={9} textAnchor="middle"
-              fill={isWeekend ? 'var(--text)' : 'var(--text2)'}
-              fontWeight={isWeekend ? 600 : 400}>
-              {diasSemana[dow]}
-            </text>
           )
         })}
       </svg>
