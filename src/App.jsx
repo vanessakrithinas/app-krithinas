@@ -972,11 +972,9 @@ function CalendarioCopa({ receitas, onDayClick }) {
   const mesesNomes = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO']
   const diasSemana = ['S','D','S','T','Q','Q','S']
 
-  // Copa: receitas têm só `mes` (YYYY-MM), sem datas de check-in/check-out
-  // colorir o mês inteiro com a cor do canal
-  const getMesInfo = (mes0) => {
-    const mesStr = `${ano}-${String(mes0+1).padStart(2,'0')}`
-    const rec = receitas.filter(r => r.mes === mesStr)
+  // Copa: receitas agora têm `data` (YYYY-MM-DD) para colorir dia a dia
+  const getDayInfo = (dateStr) => {
+    const rec = receitas.filter(r => r.data === dateStr)
     if (!rec.length) return null
     return rec[0]
   }
@@ -1025,9 +1023,6 @@ function CalendarioCopa({ receitas, onDayClick }) {
           const diasNoMes = new Date(ano, mes0 + 1, 0).getDate()
           const primeiroDia = new Date(ano, mes0, 1).getDay()
           const y = headerH + mes0 * rowH
-          const recInfo = getMesInfo(mes0)
-          const canal = recInfo ? recInfo.canal : null
-          const cfg = canal ? COPA_CANAIS[canal] : null
 
           return (
             <g key={mes0}>
@@ -1048,7 +1043,9 @@ function CalendarioCopa({ receitas, onDayClick }) {
                 }
 
                 const dateStr = `${ano}-${String(mes0+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`
-                const mesStr = `${ano}-${String(mes0+1).padStart(2,'0')}`
+                const dayInfo = getDayInfo(dateStr)
+                const canal = dayInfo ? dayInfo.canal : null
+                const cfg = canal ? COPA_CANAIS[canal] : null
                 const dow = new Date(dateStr).getDay()
                 const isWeekend = dow === 0 || dow === 6
                 const isToday = dateStr === new Date().toISOString().slice(0,10)
@@ -1056,7 +1053,7 @@ function CalendarioCopa({ receitas, onDayClick }) {
                 const fg = cfg ? cfg.fg : 'var(--text)'
 
                 return (
-                  <g key={idx} onClick={() => onDayClick && onDayClick(mesStr, recInfo)} style={{ cursor: 'pointer' }}>
+                  <g key={idx} onClick={() => onDayClick && onDayClick(dateStr, dayInfo)} style={{ cursor: 'pointer' }}>
                     <rect x={x} y={y} width={cellW - 1} height={cellH} rx={3}
                       fill={bg}
                       stroke={isToday ? '#F59E0B' : 'var(--border)'}
@@ -1355,27 +1352,29 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
   }
   const saveTr = async f => { await db.insert('copa_transferencias', { data: f.data, valor_brl: +f.valor_brl || 0, valor_eur: +f.valor_eur || 0, notas: f.notas }); reload(); setModal(null) }
 
-  const handleDayClick = (mesStr, info) => {
-    setCalendarModal({ mes: mesStr, info })
+  const handleDayClick = (dateStr, info) => {
+    setCalendarModal({ date: dateStr, info })
   }
 
   const handleCalendarSave = async (canal) => {
-    // Se canal for null, significa remover
+    const clickedDate = calendarModal.date
+    const mesStr = clickedDate.slice(0, 7) // YYYY-MM
+
+    // Se canal for null, significa remover este dia específico
     if (!canal && calendarModal.info) {
-      // Remover a receita existente
       await db.remove('copa_receitas', calendarModal.info.id)
     } else if (canal) {
-      // Se já existe receita neste mês, atualizar; senão criar nova
+      // Se já existe receita neste dia, atualizar; senão criar nova
       if (calendarModal.info) {
         // Atualizar receita existente
         await db.update('copa_receitas', calendarModal.info.id, {
           canal: canal,
         })
       } else {
-        // Adicionar nova receita para este mês
+        // Adicionar nova receita para este dia
         await db.insert('copa_receitas', {
-          mes: calendarModal.mes,
-          data: null,
+          mes: mesStr,
+          data: clickedDate,
           descricao: 'Aluguel AP 812',
           canal: canal,
           valor_brl: 0,
@@ -1425,7 +1424,7 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
           <div className="drawer-panel" style={{ width: 'min(360px, 100vw)' }}>
             <div className="drawer-hd">
               <span className="drawer-hd-title">
-                {mesL(calendarModal.mes)}
+                {new Date(calendarModal.date + 'T00:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}
               </span>
               <button className="drawer-close" onClick={() => setCalendarModal(null)}>×</button>
             </div>
