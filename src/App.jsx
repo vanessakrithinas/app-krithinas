@@ -1413,11 +1413,26 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
       ]} rows={recMes} /></>}
       {tab === 'res' && <><SecHead label="Resumo por mês 2026" /><Tbl cols={[
         { k: 'mes', l: 'Mês', fn: r => mesL(r.mes), n: true },
-        { k: 'rec', l: 'Aluguel BRL', r: true, fn: r => brl(r.rec) },
-        { k: 'desp', l: 'Despesas BRL', r: true, fn: r => brl(r.desp) },
+        { k: 'rec', l: 'Aluguel BRL', r: true, fn: r => (
+          <span>
+            {brl(r.rec)}
+            <span style={{ color: 'var(--text2)', fontSize: 11, marginLeft: 6 }}>≈ {eur(r.rec * 0.18)}</span>
+          </span>
+        )},
+        { k: 'desp', l: 'Despesas BRL', r: true, fn: r => (
+          <span>
+            {brl(r.desp)}
+            <span style={{ color: 'var(--text2)', fontSize: 11, marginLeft: 6 }}>≈ {eur(r.desp * 0.18)}</span>
+          </span>
+        )},
         { k: 'saldo', l: 'Saldo', r: true, fn: r => {
           const s = r.rec - r.desp;
-          return <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span>
+          return (
+            <span>
+              <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span>
+              <span style={{ color: 'var(--text2)', fontSize: 11, marginLeft: 6 }}>≈ {eur(s * 0.18)}</span>
+            </span>
+          )
         }},
         { k: 'recebido', l: 'Recebe em PT', fn: r => r.recebidoEm || '—' },
       ]} rows={(() => {
