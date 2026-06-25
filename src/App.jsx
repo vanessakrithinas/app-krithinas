@@ -837,7 +837,7 @@ const VILLA_TIPOS = {
 function CalendarioVilla({ reservas, onDayClick }) {
   const ano = 2026
   const mesesNomes = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO']
-  const diasSemana = ['S','D','S','T','Q','Q','S']
+  const diasSemana = ['D','S','T','Q','Q','S','S'] // 0=Dom, 1=Seg, ..., 6=Sáb
 
   // para cada dia do ano, determinar que reserva se aplica
   const getDayInfo = (mes0, dia) => {
@@ -884,7 +884,7 @@ function CalendarioVilla({ reservas, onDayClick }) {
         {/* cabeçalho com dias da semana repetidos */}
         {Array.from({ length: semanas * diasPorSemana }, (_, i) => {
           const dow = i % 7
-          const isWeekend = dow === 0 || dow === 1 // S ou D
+          const isWeekend = dow === 0 || dow === 6 // 0=Dom, 6=Sáb
           return (
             <g key={i} transform={`translate(${labelW + i * cellW}, 0)`}>
               <rect width={cellW - 1} height={headerH - 4} fill={isWeekend ? 'var(--bg2)' : 'transparent'} rx={2} />
@@ -970,7 +970,7 @@ const COPA_CANAIS = {
 function CalendarioCopa({ receitas, onDayClick }) {
   const ano = 2026
   const mesesNomes = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO']
-  const diasSemana = ['S','D','S','T','Q','Q','S']
+  const diasSemana = ['D','S','T','Q','Q','S','S'] // 0=Dom, 1=Seg, ..., 6=Sáb
 
   // Copa: receitas devem ter entrada/saida (intervalo) para aparecer no calendário
   const getDayInfo = (dateStr) => {
@@ -1013,7 +1013,7 @@ function CalendarioCopa({ receitas, onDayClick }) {
         {/* cabeçalho com dias da semana */}
         {Array.from({ length: semanas * diasPorSemana }, (_, i) => {
           const dow = i % 7
-          const isWeekend = dow === 0 || dow === 1
+          const isWeekend = dow === 0 || dow === 6 // 0=Dom, 6=Sáb
           return (
             <g key={i} transform={`translate(${labelW + i * cellW}, 0)`}>
               <rect width={cellW - 1} height={headerH - 4} fill={isWeekend ? 'var(--bg2)' : 'transparent'} rx={2} />
