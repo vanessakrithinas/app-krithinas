@@ -25,23 +25,25 @@ node check-and-migrate-copa.js
 
 Deves ver: "✅ Campos entrada/saida já existem!"
 
-### 4. Adicionar dados de exemplo (Janeiro 2026)
+### 4. Adicionar todas as reservas 2026
 
-Depois de adicionar as colunas, podes adicionar as reservas manualmente na aplicação ou executar este SQL para Janeiro:
+Depois de adicionar as colunas, executa o ficheiro SQL completo:
 
-```sql
--- Janeiro: dia 1
-INSERT INTO copa_receitas (mes, entrada, saida, descricao, canal, valor_brl, taxa)
-VALUES ('2026-01', '2026-01-01', '2026-01-01', 'Aluguel AP 812', 'RioHost', 0, 0.18);
-
--- Janeiro: dias 9 a 14
-INSERT INTO copa_receitas (mes, entrada, saida, descricao, canal, valor_brl, taxa)
-VALUES ('2026-01', '2026-01-09', '2026-01-14', 'Aluguel AP 812', 'RioHost', 0, 0.18);
-
--- Janeiro: dias 23 a 29
-INSERT INTO copa_receitas (mes, entrada, saida, descricao, canal, valor_brl, taxa)
-VALUES ('2026-01', '2026-01-23', '2026-01-29', 'Aluguel AP 812', 'RioHost', 0, 0.18);
+```bash
+# No Supabase SQL Editor, copia e cola o conteúdo do ficheiro:
+cat add-copa-reservas-2026.sql
 ```
+
+Ou adiciona manualmente via aplicação (botão "Nova receita" na aba Copa > Receitas).
+
+**Reservas incluídas:**
+- **Janeiro**: Check-out 2, Check-in 9/Check-out 14, Check-in 23/Check-out 29
+- **Fevereiro**: 19-22
+- **Março**: 11-15, 17-20, 22-31
+- **Abril**: 1, 8-17, 18-22, 28-30
+- **Maio**: 1-4
+- **Junho**: 1-10, 20-30
+- **Julho**: 1-12
 
 ## Notas
 - As receitas antigas (sem entrada/saida) continuam a funcionar
