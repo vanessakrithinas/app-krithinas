@@ -972,22 +972,14 @@ function CalendarioCopa({ receitas, onDayClick }) {
   const mesesNomes = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO']
   const diasSemana = ['S','D','S','T','Q','Q','S']
 
-  // Copa: receitas podem ter entrada/saida (intervalo) ou apenas data única
+  // Copa: receitas devem ter entrada/saida (intervalo) para aparecer no calendário
   const getDayInfo = (dateStr) => {
     for (const r of receitas) {
-      // Se tem entrada e saída, verifica se o dia está no intervalo
+      // Apenas mostra se tem entrada e saída definidas
       if (r.entrada && r.saida) {
         if (dateStr >= r.entrada && dateStr <= r.saida) {
           return r
         }
-      }
-      // Se tem apenas data específica, verifica se é este dia
-      else if (r.data && r.data === dateStr) {
-        return r
-      }
-      // Se tem apenas mês, colore todo o mês
-      else if (r.mes && !r.data && !r.entrada && dateStr.startsWith(r.mes)) {
-        return r
       }
     }
     return null
