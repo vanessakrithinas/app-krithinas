@@ -15,7 +15,6 @@ const todayISO = () => new Date().toISOString().slice(0, 10)
 // ── notificações ───────────────────────────────────────────────────────────
 const getNotificacoesPendentes = (notificacoes, historico, mesAtual) => {
   const pendentes = []
-  const hoje = new Date()
   const [anoAtual, mesAtualNum] = mesAtual.split('-').map(Number)
 
   notificacoes.forEach(n => {
@@ -24,34 +23,47 @@ const getNotificacoesPendentes = (notificacoes, historico, mesAtual) => {
     const inicio = new Date(n.data_inicio)
     const inicioAno = inicio.getFullYear()
     const inicioMes = inicio.getMonth() + 1 // 0-11 -> 1-12
+    const dataInicio = new Date(inicioAno, inicioMes - 1, 1)
+    const mesAtualDate = new Date(anoAtual, mesAtualNum - 1, 1)
 
-    // Verificar se a notificação se aplica ao mês atual
-    let aplicavel = false
+    // A notificação só aparece a partir do mês de início
+    if (mesAtualDate < dataInicio) return
+
+    // Verificar se já foi paga no histórico para este ano/período
+    let jaFoiPaga = false
 
     if (n.recorrencia === 'unico') {
-      aplicavel = (inicioAno === anoAtual && inicioMes === mesAtualNum)
+      // Único: verifica se foi paga alguma vez
+      jaFoiPaga = historico.some(h =>
+        h.notificacao_id === n.id && h.pago === true
+      )
     } else if (n.recorrencia === 'mensal') {
-      // Todo mês, a partir do mês de início
-      const dataInicio = new Date(inicioAno, inicioMes - 1, 1)
-      const mesAtualDate = new Date(anoAtual, mesAtualNum - 1, 1)
-      aplicavel = mesAtualDate >= dataInicio
+      // Mensal: verifica se foi paga neste mês específico
+      jaFoiPaga = historico.some(h =>
+        h.notificacao_id === n.id &&
+        h.mes_pago === mesAtual &&
+        h.pago === true
+      )
     } else if (n.recorrencia === 'trimestral') {
-      // A cada 3 meses a partir do mês de início
+      // Trimestral: verifica se foi paga no trimestre atual
       const mesesDesdeInicio = (anoAtual - inicioAno) * 12 + (mesAtualNum - inicioMes)
-      aplicavel = mesesDesdeInicio >= 0 && mesesDesdeInicio % 3 === 0
+      const trimestreAtual = Math.floor(mesesDesdeInicio / 3)
+
+      jaFoiPaga = historico.some(h => {
+        if (h.notificacao_id !== n.id || !h.pago || !h.mes_pago) return false
+        const [anoH, mesH] = h.mes_pago.split('-').map(Number)
+        const mesesDesdeInicioH = (anoH - inicioAno) * 12 + (mesH - inicioMes)
+        const trimestreH = Math.floor(mesesDesdeInicioH / 3)
+        return trimestreH === trimestreAtual
+      })
     } else if (n.recorrencia === 'anual') {
-      // Mesmo mês todo ano
-      aplicavel = mesAtualNum === inicioMes
+      // Anual: verifica se foi paga este ano
+      jaFoiPaga = historico.some(h => {
+        if (h.notificacao_id !== n.id || !h.pago || !h.mes_pago) return false
+        const [anoH] = h.mes_pago.split('-').map(Number)
+        return anoH === anoAtual
+      })
     }
-
-    if (!aplicavel) return
-
-    // Verificar se já foi paga no histórico
-    const jaFoiPaga = historico.some(h =>
-      h.notificacao_id === n.id &&
-      h.mes_pago === mesAtual &&
-      h.pago === true
-    )
 
     if (!jaFoiPaga) {
       pendentes.push(n)
