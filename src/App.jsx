@@ -869,6 +869,15 @@ function CalendarioVilla({ reservas, onDayClick }) {
   return (
     <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
       <svg width={svgW} height={svgH} style={{ fontFamily: 'DM Sans, sans-serif', display: 'block' }}>
+        {/* definir padrões de listras para cada tipo */}
+        <defs>
+          {Object.entries(VILLA_TIPOS).map(([k, v]) => (
+            <pattern key={k} id={`stripes-${k}`} patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="8" stroke={v.cor} strokeWidth="4" opacity="0.4" />
+            </pattern>
+          ))}
+        </defs>
+
         {/* legenda */}
         {Object.entries(VILLA_TIPOS).map(([k, v], i) => (
           <g key={k} transform={`translate(${labelW + i * 110}, ${svgH - 44})`}>
@@ -925,6 +934,7 @@ function CalendarioVilla({ reservas, onDayClick }) {
                 const info = getDayInfo(mes0, dia)
                 const tipo = info ? info.tipo : null
                 const cfg = tipo ? VILLA_TIPOS[tipo] : null
+                const isPago = info && info.r && info.r.pagamento === 'pago'
                 const dateStr = `${ano}-${String(mes0+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`
                 const dow = new Date(dateStr).getDay()
                 const isWeekend = dow === 0 || dow === 6
@@ -942,6 +952,12 @@ function CalendarioVilla({ reservas, onDayClick }) {
                       onMouseEnter={e => e.target.style.opacity = '0.75'}
                       onMouseLeave={e => e.target.style.opacity = '1'}
                     />
+                    {isPago && tipo && (
+                      <rect x={x} y={y} width={cellW - 1} height={cellH} rx={3}
+                        fill={`url(#stripes-${tipo})`}
+                        style={{ pointerEvents: 'none' }}
+                      />
+                    )}
                     <text x={x + (cellW - 1) / 2} y={y + cellH / 2 + 5}
                       fontSize={11} textAnchor="middle"
                       fill={fg}
@@ -1099,7 +1115,7 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
   // Noites alugadas: contar reservas que geram receita (Irasine, Inquilino, Jonhy - não Amigos/Família)
   const noitesAnо = resAnо.filter(r => r.tipo === 'Irasine' || r.tipo === 'Inquilino' || r.tipo === 'Jonhy').reduce((s, r) => s + noites(r), 0)
 
-  const saveRes = async f => { await db.insert('villa_reservas', { entrada: f.entrada, saida: f.saida, tipo: f.tipo || 'Inquilino', inquilino: f.inquilino, canal: f.canal || 'Directo', valor: +f.valor || 0, estado: f.estado || 'confirmado' }); reload(); setModal(null) }
+  const saveRes = async f => { await db.insert('villa_reservas', { entrada: f.entrada, saida: f.saida, tipo: f.tipo || 'Inquilino', inquilino: f.inquilino, canal: f.canal || 'Directo', valor: +f.valor || 0, pagamento: f.pagamento || 'pendente', estado: f.estado || 'confirmado' }); reload(); setModal(null) }
 
   const handleDayClick = (date, info) => {
     setCalendarModal({ date, info })
@@ -1212,6 +1228,7 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
         { k: 'inquilino', l: 'Hóspede', n: true, edit: 'text' },
         { k: 'canal', l: 'Canal', edit: 'select', options: ['Directo','Airbnb','Booking','Outro'] },
         { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—', edit: 'number' },
+        { k: 'pagamento', l: 'Pagamento', fn: r => <Badge s={r.pagamento || 'pendente'} />, edit: 'select', options: ['pago','pendente'] },
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['confirmado','pendente'] },
       ]} rows={resMes} /></>}
       {tab === 'all' && <><SecHead label="Todas as reservas 2026" onAdd={() => setModal('res')} /><Tbl table="villa_reservas" onSave={reload} cols={[
@@ -1221,6 +1238,7 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
         { k: 'tipo', l: 'Tipo', edit: 'select', options: ['Irasine','Inquilino','Amigos','Família'] },
         { k: 'inquilino', l: 'Hóspede', n: true, edit: 'text' },
         { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—', edit: 'number' },
+        { k: 'pagamento', l: 'Pagamento', fn: r => <Badge s={r.pagamento || 'pendente'} />, edit: 'select', options: ['pago','pendente'] },
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['confirmado','pendente'] },
       ]} rows={resAnо} /></>}
       {tab === 'desp' && (
@@ -1234,7 +1252,16 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
           ]} rows={desp} />
         </>
       )}
-      {modal === 'res' && <Drawer title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[{ k: 'entrada', l: 'Data entrada', t: 'date' }, { k: 'saida', l: 'Data saída', t: 'date' }, { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Irasine','Inquilino','Amigos','Família'] }, { k: 'inquilino', l: 'Nome / Quem', t: 'text' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo','Airbnb','Booking','Outro'] }, { k: 'valor', l: 'Receita (€)', t: 'money' }, { k: 'estado', l: 'Estado', t: 'estado', o: ['confirmado','pendente'] }]} onClose={() => setModal(null)} onSave={saveRes} />}
+      {modal === 'res' && <Drawer title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[
+        { k: 'entrada', l: 'Data entrada', t: 'date' },
+        { k: 'saida', l: 'Data saída', t: 'date' },
+        { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Irasine','Inquilino','Amigos','Família'] },
+        { k: 'inquilino', l: 'Nome / Quem', t: 'text' },
+        { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo','Airbnb','Booking','Outro'] },
+        { k: 'valor', l: 'Receita (€)', t: 'money' },
+        { k: 'pagamento', l: 'Pagamento', t: 'estado', o: ['pago','pendente'] },
+        { k: 'estado', l: 'Estado', t: 'estado', o: ['confirmado','pendente'] }
+      ]} onClose={() => setModal(null)} onSave={saveRes} />}
 
       {calendarModal && (
         <>
