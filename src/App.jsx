@@ -972,16 +972,25 @@ function CalendarioCopa({ receitas, onDayClick }) {
   const mesesNomes = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO']
   const diasSemana = ['S','D','S','T','Q','Q','S']
 
-  // Copa: receitas com `data` específica ou `mes` completo
+  // Copa: receitas podem ter entrada/saida (intervalo) ou apenas data única
   const getDayInfo = (dateStr) => {
-    // Primeiro tenta encontrar receita para este dia específico
-    let rec = receitas.find(r => r.data === dateStr)
-    if (rec) return rec
-
-    // Se não encontrou, verifica se há receita para o mês inteiro
-    const mesStr = dateStr.slice(0, 7) // YYYY-MM
-    rec = receitas.find(r => r.mes === mesStr && !r.data)
-    return rec || null
+    for (const r of receitas) {
+      // Se tem entrada e saída, verifica se o dia está no intervalo
+      if (r.entrada && r.saida) {
+        if (dateStr >= r.entrada && dateStr <= r.saida) {
+          return r
+        }
+      }
+      // Se tem apenas data específica, verifica se é este dia
+      else if (r.data && r.data === dateStr) {
+        return r
+      }
+      // Se tem apenas mês, colore todo o mês
+      else if (r.mes && !r.data && !r.entrada && dateStr.startsWith(r.mes)) {
+        return r
+      }
+    }
+    return null
   }
 
   const cellW = 32
@@ -1350,8 +1359,17 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
   const tDanо = sum(despAnо, 'valor_brl')
 
   const saveRec = async f => {
-    const dataCompleta = f.dia ? `${mes}-${String(f.dia).padStart(2, '0')}` : null
-    await db.insert('copa_receitas', { mes, data: dataCompleta, descricao: f.descricao || 'Aluguel AP 812', canal: f.canal || 'RioHost', valor_brl: +f.valor_brl || 0, taxa: +f.taxa || 0.18 });
+    // Calcular mês a partir da entrada
+    const mesRec = f.entrada ? f.entrada.slice(0, 7) : mes
+    await db.insert('copa_receitas', {
+      mes: mesRec,
+      entrada: f.entrada,
+      saida: f.saida,
+      descricao: f.descricao || 'Aluguel AP 812',
+      canal: f.canal || 'RioHost',
+      valor_brl: +f.valor_brl || 0,
+      taxa: +f.taxa || 0.18
+    });
     reload();
     setModal(null)
   }
@@ -1376,15 +1394,15 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
           canal: canal,
         })
       } else {
-        // Adicionar nova receita para este dia
+        // Adicionar nova receita para este dia (entrada = saida = mesmo dia)
         await db.insert('copa_receitas', {
           mes: mesStr,
-          data: clickedDate,
+          entrada: clickedDate,
+          saida: clickedDate,
           descricao: 'Aluguel AP 812',
           canal: canal,
           valor_brl: 0,
-          taxa: 0.18,
-          estado: 'pago'
+          taxa: 0.18
         })
       }
     }
@@ -1410,7 +1428,8 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
         { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl), edit: 'number' },
       ]} rows={despMes} /></>}
       {tab === 'rec' && <><SecHead label={`Receitas — ${mesL(mes)}`} onAdd={() => setModal('rec')} /><Tbl table="copa_receitas" onSave={reload} cols={[
-        { k: 'data', l: 'Data', edit: 'date' },
+        { k: 'entrada', l: 'Check-in', edit: 'date' },
+        { k: 'saida', l: 'Check-out', edit: 'date' },
         { k: 'descricao', l: 'Descrição', n: true, edit: 'text' },
         { k: 'canal', l: 'Canal', edit: 'select', options: ['RioHost','Booking','Directo'] },
         { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl), edit: 'number' },
@@ -1455,7 +1474,14 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
       })()} /></>}
       {tab === 'tr' && <><SecHead label="Transferências BRL → EUR" onAdd={() => setModal('tr')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'notas', l: 'Referência', n: true }, { k: 'valor_brl', l: 'Enviado BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'valor_eur', l: 'Recebido EUR', r: true, fn: r => eur(r.valor_eur) }, { k: 'taxa', l: 'Taxa real', r: true, fn: r => r.valor_brl ? (r.valor_eur / r.valor_brl).toFixed(4) : '—' }]} rows={tr} /></>}
       {modal === 'desp' && <Drawer title="Nova despesa — Copa Rio" ac="var(--blue2)" fields={[{ k: 'dia', l: 'Dia', t: 'number', p: '1-31' }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }]} onClose={() => setModal(null)} onSave={async f => { const dataCompleta = f.dia ? `${mes}-${String(f.dia).padStart(2, '0')}` : null; await db.insert('copa_despesas', { mes, data: dataCompleta, categoria: f.categoria || 'outros', descricao: f.descricao, valor_brl: +f.valor_brl || 0 }); reload(); setModal(null) }} />}
-      {modal === 'rec' && <Drawer title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'dia', l: 'Dia', t: 'number', p: '1-31' }, { k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost','Booking','Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'taxa', l: 'Taxa câmbio', t: 'text', p: '0.18' }]} onClose={() => setModal(null)} onSave={saveRec} />}
+      {modal === 'rec' && <Drawer title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[
+        { k: 'entrada', l: 'Check-in', t: 'date' },
+        { k: 'saida', l: 'Check-out', t: 'date' },
+        { k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' },
+        { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost','Booking','Directo'] },
+        { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' },
+        { k: 'taxa', l: 'Taxa câmbio', t: 'text', p: '0.18' }
+      ]} onClose={() => setModal(null)} onSave={saveRec} />}
       {modal === 'tr' && <Drawer title="Nova transferência BRL → EUR" ac="var(--blue2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'valor_brl', l: 'Valor enviado (BRL)', t: 'money' }, { k: 'valor_eur', l: 'Valor recebido (EUR)', t: 'money' }, { k: 'notas', l: 'Referência', t: 'text', p: 'Ex: Jan-Mar 2026' }]} onClose={() => setModal(null)} onSave={saveTr} />}
 
       {calendarModal && (
