@@ -1395,7 +1395,7 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
         <StatCard label={`Saldo ${mesL(mes)}`} value={brl(tRmes - tDmes)} ac={tRmes - tDmes >= 0 ? 'var(--green2)' : 'var(--red2)'} blur={blur} />
         <StatCard label="Transferido PT" value={eur(sum(tr, 'valor_eur'))} sub={`${tr.length} transf.`} ac="var(--blue2)" blur={blur} />
       </div>
-      <div className="info-strip blue"><i className="ti ti-currency-real" /> Valores em BRL · Taxa referência: 1 BRL ≈ 0,18 EUR · Câmbio real por transferência</div>
+      <div className="info-strip blue"><i className="ti ti-currency-real" /> Valores em BRL · Taxa referência: 1 BRL ≈ 0,18 EUR · Pagamento recebido no mês seguinte ao aluguel</div>
       <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'desp', l: 'Despesas' }, { k: 'rec', l: 'Receitas' }, { k: 'res', l: 'Resumo Ano' }, { k: 'tr', l: 'Transf. PT' }]} active={tab} onChange={setTab} />
       {tab === 'cal' && <><SecHead label="Calendário de ocupação 2026 (clica num dia para editar)" onAdd={() => setModal('rec')} /><CalendarioCopa receitas={recAnо} onDayClick={handleDayClick} /></>}
       {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal('desp')} /><Tbl table="copa_despesas" onSave={reload} cols={[
@@ -1419,16 +1419,18 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
           const s = r.rec - r.desp;
           return <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span>
         }},
-        { k: 'recebido', l: 'Recebido em PT', fn: r => r.recebido ? '10 Jul' : '—' },
+        { k: 'recebido', l: 'Recebe em PT', fn: r => r.recebidoEm || '—' },
       ]} rows={(() => {
         // Agrupar receitas e despesas por mês
         const mesesSet = new Set([...recAnо.map(r => r.mes), ...despAnо.map(d => d.mes)])
         return Array.from(mesesSet).sort().map(m => {
           const recTotal = sum(recAnо.filter(r => r.mes === m), 'valor_brl')
           const despTotal = sum(despAnо.filter(d => d.mes === m), 'valor_brl')
-          // Junho do Brasil recebe-se a 10 de Julho
-          const recebido = m === '2026-06'
-          return { mes: m, rec: recTotal, desp: despTotal, recebido }
+          // Pagamento é recebido no mês seguinte (ex: Junho recebe-se em Julho)
+          const [ano, mesNum] = m.split('-').map(Number)
+          const proxMes = mesNum === 12 ? 1 : mesNum + 1
+          const recebidoEm = recTotal > 0 ? MESES[proxMes - 1] : '—'
+          return { mes: m, rec: recTotal, desp: despTotal, recebidoEm }
         })
       })()} /></>}
       {tab === 'tr' && <><SecHead label="Transferências BRL → EUR" onAdd={() => setModal('tr')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'notas', l: 'Referência', n: true }, { k: 'valor_brl', l: 'Enviado BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'valor_eur', l: 'Recebido EUR', r: true, fn: r => eur(r.valor_eur) }, { k: 'taxa', l: 'Taxa real', r: true, fn: r => r.valor_brl ? (r.valor_eur / r.valor_brl).toFixed(4) : '—' }]} rows={tr} /></>}
