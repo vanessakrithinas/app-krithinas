@@ -347,11 +347,16 @@ const DRAWER_CSS = `
 // t='cat'  → badges coloridos (usa CAT_COLORS); passar o: ['cat1','cat2',...]
 // t='estado' → pills coloridas; passar o: ['pago','pendente',...]
 // t='money' → input text que aceita vírgula e ponto
-function Drawer({ title, ac, fields, onClose, onSave }) {
+function Drawer({ title, ac, fields, onClose, onSave, defaultData = {} }) {
   const init = {}
   fields.forEach(f => {
-    if (f.t === 'date') init[f.k] = todayISO()
-    else init[f.k] = ''
+    if (defaultData[f.k] !== undefined) {
+      init[f.k] = defaultData[f.k]
+    } else if (f.t === 'date') {
+      init[f.k] = todayISO()
+    } else {
+      init[f.k] = ''
+    }
   })
   const [form, setForm] = useState(init)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -1118,7 +1123,13 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
   const saveRes = async f => { await db.insert('villa_reservas', { entrada: f.entrada, saida: f.saida, tipo: f.tipo || 'Inquilino', inquilino: f.inquilino, canal: f.canal || 'Directo', valor: +f.valor || 0, pagamento: f.pagamento || 'pendente', estado: f.estado || 'confirmado' }); reload(); setModal(null) }
 
   const handleDayClick = (date, info) => {
-    setCalendarModal({ date, info })
+    // Se dia vazio, abrir drawer de nova reserva com data de entrada preenchida
+    if (!info) {
+      setModal({ type: 'res', defaultData: { entrada: date, saida: date } })
+    } else {
+      // Se dia ocupado, abrir modal para editar
+      setCalendarModal({ date, info })
+    }
   }
 
   const handleCalendarSave = async (tipo) => {
@@ -1252,16 +1263,25 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
           ]} rows={desp} />
         </>
       )}
-      {modal === 'res' && <Drawer title="Nova reserva — Villa Vilamoura" ac="var(--green2)" fields={[
-        { k: 'entrada', l: 'Data entrada', t: 'date' },
-        { k: 'saida', l: 'Data saída', t: 'date' },
-        { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Irasine','Inquilino','Amigos','Família'] },
-        { k: 'inquilino', l: 'Nome / Quem', t: 'text' },
-        { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo','Airbnb','Booking','Outro'] },
-        { k: 'valor', l: 'Receita (€)', t: 'money' },
-        { k: 'pagamento', l: 'Pagamento', t: 'estado', o: ['pago','pendente'] },
-        { k: 'estado', l: 'Estado', t: 'estado', o: ['confirmado','pendente'] }
-      ]} onClose={() => setModal(null)} onSave={saveRes} />}
+      {(modal === 'res' || (modal && modal.type === 'res')) && (
+        <Drawer
+          title="Nova reserva — Villa Vilamoura"
+          ac="var(--green2)"
+          fields={[
+            { k: 'entrada', l: 'Data entrada', t: 'date' },
+            { k: 'saida', l: 'Data saída', t: 'date' },
+            { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Irasine','Inquilino','Amigos','Família'] },
+            { k: 'inquilino', l: 'Nome / Quem', t: 'text' },
+            { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo','Airbnb','Booking','Outro'] },
+            { k: 'valor', l: 'Receita (€)', t: 'money' },
+            { k: 'pagamento', l: 'Pagamento', t: 'estado', o: ['pago','pendente'] },
+            { k: 'estado', l: 'Estado', t: 'estado', o: ['confirmado','pendente'] }
+          ]}
+          defaultData={modal && modal.defaultData ? modal.defaultData : {}}
+          onClose={() => setModal(null)}
+          onSave={saveRes}
+        />
+      )}
 
       {calendarModal && (
         <>
