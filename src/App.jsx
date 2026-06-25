@@ -1827,20 +1827,15 @@ export default function App() {
               {data && getNotificacoesPendentes(data.notificacoes || [], data.notificacoes_historico || [], mes).length > 0 && (
                 <span style={{
                   position: 'absolute',
-                  top: -4,
-                  right: -4,
+                  top: 6,
+                  right: 6,
+                  width: 8,
+                  height: 8,
                   background: '#EF4444',
-                  color: 'white',
-                  borderRadius: 10,
-                  padding: '2px 6px',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  lineHeight: 1,
-                  minWidth: 18,
-                  textAlign: 'center',
-                }}>
-                  {getNotificacoesPendentes(data.notificacoes || [], data.notificacoes_historico || [], mes).length}
-                </span>
+                  borderRadius: '50%',
+                  border: '1.5px solid var(--surface)',
+                  boxShadow: '0 0 0 1px var(--border2)',
+                }} />
               )}
             </button>
             <button
