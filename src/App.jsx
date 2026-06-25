@@ -972,11 +972,16 @@ function CalendarioCopa({ receitas, onDayClick }) {
   const mesesNomes = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO']
   const diasSemana = ['S','D','S','T','Q','Q','S']
 
-  // Copa: receitas agora têm `data` (YYYY-MM-DD) para colorir dia a dia
+  // Copa: receitas com `data` específica ou `mes` completo
   const getDayInfo = (dateStr) => {
-    const rec = receitas.filter(r => r.data === dateStr)
-    if (!rec.length) return null
-    return rec[0]
+    // Primeiro tenta encontrar receita para este dia específico
+    let rec = receitas.find(r => r.data === dateStr)
+    if (rec) return rec
+
+    // Se não encontrou, verifica se há receita para o mês inteiro
+    const mesStr = dateStr.slice(0, 7) // YYYY-MM
+    rec = receitas.find(r => r.mes === mesStr && !r.data)
+    return rec || null
   }
 
   const cellW = 32
