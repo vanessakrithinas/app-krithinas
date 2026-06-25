@@ -1411,7 +1411,26 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
         { k: 'valor_brl', l: 'BRL', r: true, fn: r => brl(r.valor_brl), edit: 'number' },
         { k: 'eur', l: '≈ EUR', r: true, fn: r => eur(r.valor_brl * (r.taxa || 0.18)) },
       ]} rows={recMes} /></>}
-      {tab === 'res' && <><SecHead label="Resumo por mês 2026" /><Tbl cols={[{ k: 'mes', l: 'Mês', fn: r => mesL(r.mes), n: true }, { k: 'rec', l: 'Aluguel BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'desp', l: 'Despesas BRL', r: true, fn: r => brl(sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl')) }, { k: 'saldo', l: 'Saldo', r: true, fn: r => { const s = r.valor_brl - sum(despAnо.filter(d => d.mes === r.mes), 'valor_brl'); return <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span> } }, { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> }]} rows={recAnо} /></>}
+      {tab === 'res' && <><SecHead label="Resumo por mês 2026" /><Tbl cols={[
+        { k: 'mes', l: 'Mês', fn: r => mesL(r.mes), n: true },
+        { k: 'rec', l: 'Aluguel BRL', r: true, fn: r => brl(r.rec) },
+        { k: 'desp', l: 'Despesas BRL', r: true, fn: r => brl(r.desp) },
+        { k: 'saldo', l: 'Saldo', r: true, fn: r => {
+          const s = r.rec - r.desp;
+          return <span style={{ color: s >= 0 ? 'var(--green)' : 'var(--red2)', fontWeight: 600, fontFamily: 'DM Mono, monospace', fontSize: 12 }}>{brl(s)}</span>
+        }},
+        { k: 'recebido', l: 'Recebido em PT', fn: r => r.recebido ? '10 Jul' : '—' },
+      ]} rows={(() => {
+        // Agrupar receitas e despesas por mês
+        const mesesSet = new Set([...recAnо.map(r => r.mes), ...despAnо.map(d => d.mes)])
+        return Array.from(mesesSet).sort().map(m => {
+          const recTotal = sum(recAnо.filter(r => r.mes === m), 'valor_brl')
+          const despTotal = sum(despAnо.filter(d => d.mes === m), 'valor_brl')
+          // Junho do Brasil recebe-se a 10 de Julho
+          const recebido = m === '2026-06'
+          return { mes: m, rec: recTotal, desp: despTotal, recebido }
+        })
+      })()} /></>}
       {tab === 'tr' && <><SecHead label="Transferências BRL → EUR" onAdd={() => setModal('tr')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'notas', l: 'Referência', n: true }, { k: 'valor_brl', l: 'Enviado BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'valor_eur', l: 'Recebido EUR', r: true, fn: r => eur(r.valor_eur) }, { k: 'taxa', l: 'Taxa real', r: true, fn: r => r.valor_brl ? (r.valor_eur / r.valor_brl).toFixed(4) : '—' }]} rows={tr} /></>}
       {modal === 'desp' && <Drawer title="Nova despesa — Copa Rio" ac="var(--blue2)" fields={[{ k: 'dia', l: 'Dia', t: 'number', p: '1-31' }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }]} onClose={() => setModal(null)} onSave={async f => { const dataCompleta = f.dia ? `${mes}-${String(f.dia).padStart(2, '0')}` : null; await db.insert('copa_despesas', { mes, data: dataCompleta, categoria: f.categoria || 'outros', descricao: f.descricao, valor_brl: +f.valor_brl || 0 }); reload(); setModal(null) }} />}
       {modal === 'rec' && <Drawer title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[{ k: 'dia', l: 'Dia', t: 'number', p: '1-31' }, { k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' }, { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost','Booking','Directo'] }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }, { k: 'taxa', l: 'Taxa câmbio', t: 'text', p: '0.18' }]} onClose={() => setModal(null)} onSave={saveRec} />}
