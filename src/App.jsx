@@ -936,15 +936,15 @@ function CalendarioVilla({ reservas, onDayClick }) {
                   <g key={idx} onClick={() => onDayClick && onDayClick(dateStr, info)} style={{ cursor: 'pointer' }}>
                     <rect x={x} y={y} width={cellW - 1} height={cellH} rx={3}
                       fill={bg}
-                      stroke={isToday ? '#000' : 'var(--border)'}
-                      strokeWidth={isToday ? 2.5 : 0.5}
+                      stroke={isToday ? '#C9A84C' : 'var(--border)'}
+                      strokeWidth={isToday ? 2 : 0.5}
                       style={{ transition: 'opacity .15s' }}
                       onMouseEnter={e => e.target.style.opacity = '0.75'}
                       onMouseLeave={e => e.target.style.opacity = '1'}
                     />
                     <text x={x + (cellW - 1) / 2} y={y + cellH / 2 + 5}
                       fontSize={11} textAnchor="middle"
-                      fill={fg}
+                      fill={isToday && !cfg ? '#C9A84C' : fg}
                       fontWeight={isToday ? 700 : cfg ? 600 : 400}
                       style={{ pointerEvents: 'none' }}>
                       {dia}
@@ -1062,15 +1062,15 @@ function CalendarioCopa({ receitas, onDayClick }) {
                   <g key={idx} onClick={() => onDayClick && onDayClick(dateStr, dayInfo)} style={{ cursor: 'pointer' }}>
                     <rect x={x} y={y} width={cellW - 1} height={cellH} rx={3}
                       fill={bg}
-                      stroke={isToday ? '#000' : 'var(--border)'}
-                      strokeWidth={isToday ? 2.5 : 0.5}
+                      stroke={isToday ? '#C9A84C' : 'var(--border)'}
+                      strokeWidth={isToday ? 2 : 0.5}
                       style={{ transition: 'opacity .15s' }}
                       onMouseEnter={e => e.target.style.opacity = '0.75'}
                       onMouseLeave={e => e.target.style.opacity = '1'}
                     />
                     <text x={x + (cellW - 1) / 2} y={y + cellH / 2 + 5}
                       fontSize={11} textAnchor="middle"
-                      fill={fg}
+                      fill={isToday && !cfg ? '#C9A84C' : fg}
                       fontWeight={isToday ? 700 : cfg ? 600 : 400}
                       style={{ pointerEvents: 'none' }}>
                       {dia}
