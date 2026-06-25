@@ -12,6 +12,55 @@ const MESES_DISPONIVEIS = ['2026-01','2026-02','2026-03','2026-04','2026-05','20
 
 const todayISO = () => new Date().toISOString().slice(0, 10)
 
+// ── notificações ───────────────────────────────────────────────────────────
+const getNotificacoesPendentes = (notificacoes, historico, mesAtual) => {
+  const pendentes = []
+  const hoje = new Date()
+  const [anoAtual, mesAtualNum] = mesAtual.split('-').map(Number)
+
+  notificacoes.forEach(n => {
+    if (!n.ativo) return
+
+    const inicio = new Date(n.data_inicio)
+    const inicioAno = inicio.getFullYear()
+    const inicioMes = inicio.getMonth() + 1 // 0-11 -> 1-12
+
+    // Verificar se a notificação se aplica ao mês atual
+    let aplicavel = false
+
+    if (n.recorrencia === 'unico') {
+      aplicavel = (inicioAno === anoAtual && inicioMes === mesAtualNum)
+    } else if (n.recorrencia === 'mensal') {
+      // Todo mês, a partir do mês de início
+      const dataInicio = new Date(inicioAno, inicioMes - 1, 1)
+      const mesAtualDate = new Date(anoAtual, mesAtualNum - 1, 1)
+      aplicavel = mesAtualDate >= dataInicio
+    } else if (n.recorrencia === 'trimestral') {
+      // A cada 3 meses a partir do mês de início
+      const mesesDesdeInicio = (anoAtual - inicioAno) * 12 + (mesAtualNum - inicioMes)
+      aplicavel = mesesDesdeInicio >= 0 && mesesDesdeInicio % 3 === 0
+    } else if (n.recorrencia === 'anual') {
+      // Mesmo mês todo ano
+      aplicavel = mesAtualNum === inicioMes
+    }
+
+    if (!aplicavel) return
+
+    // Verificar se já foi paga no histórico
+    const jaFoiPaga = historico.some(h =>
+      h.notificacao_id === n.id &&
+      h.mes_pago === mesAtual &&
+      h.pago === true
+    )
+
+    if (!jaFoiPaga) {
+      pendentes.push(n)
+    }
+  })
+
+  return pendentes
+}
+
 // ── nav config ─────────────────────────────────────────────────────────────
 const NAV = [
   { k: 'dash',    label: 'Visão geral', sub: '2026',            initials: 'KR', bg: '#2A1F0A', fg: '#C9A84C', ac: '#C9A84C' },
@@ -1696,6 +1745,18 @@ export default function App() {
     copa:    data ? <CopaPage    data={data} mes={mes} reload={() => load(true)} tab={copaTab}    setTab={makeSetTab('copa',    setCopaTab)}    blur={!valuesVisible} /> : null,
   }
 
+  const pendentes = data ? getNotificacoesPendentes(data.notificacoes || [], data.notificacoes_historico || [], mes) : []
+
+  const marcarComoPago = async (notificacao) => {
+    await db.insert('notificacoes_historico', {
+      notificacao_id: notificacao.id,
+      mes_pago: mes,
+      data_pagamento: todayISO(),
+      pago: true,
+    })
+    await load(true)
+  }
+
   return (
     <div className="app">
       <div
@@ -1744,6 +1805,45 @@ export default function App() {
           <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <TopbarClock />
             <button
+              onClick={() => setNotificacoesOpen(true)}
+              style={{
+                background: 'var(--surface)',
+                border: '1px solid var(--border2)',
+                borderRadius: '50%',
+                width: 36,
+                height: 36,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'var(--text2)',
+                transition: 'all .2s',
+                boxShadow: 'var(--shadow-sm)',
+                position: 'relative',
+              }}
+              title="Notificações"
+            >
+              <i className="ti ti-bell" style={{ fontSize: 18 }} />
+              {data && getNotificacoesPendentes(data.notificacoes || [], data.notificacoes_historico || [], mes).length > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: -4,
+                  right: -4,
+                  background: '#EF4444',
+                  color: 'white',
+                  borderRadius: 10,
+                  padding: '2px 6px',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  minWidth: 18,
+                  textAlign: 'center',
+                }}>
+                  {getNotificacoesPendentes(data.notificacoes || [], data.notificacoes_historico || [], mes).length}
+                </span>
+              )}
+            </button>
+            <button
               onClick={() => setValuesVisible(!valuesVisible)}
               style={{
                 background: 'var(--surface)',
@@ -1771,6 +1871,119 @@ export default function App() {
           {loading ? <Loading /> : PAGES[page]}
         </main>
       </div>
+
+      {/* Painel de Notificações */}
+      {notificacoesOpen && (
+        <>
+          <style>{DRAWER_CSS}</style>
+          <div className="drawer-overlay" onClick={() => setNotificacoesOpen(false)} />
+          <div className="drawer-panel">
+            <div className="drawer-hd">
+              <span className="drawer-hd-title">
+                <i className="ti ti-bell" style={{ fontSize: 14, marginRight: 6 }} />
+                Notificações — {mesL(mes)}
+              </span>
+              <button className="drawer-close" onClick={() => setNotificacoesOpen(false)}>×</button>
+            </div>
+            <div className="drawer-body" style={{ gap: 14 }}>
+              {pendentes.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px 20px',
+                  color: 'var(--text2)',
+                  fontSize: 13,
+                }}>
+                  <i className="ti ti-circle-check" style={{ fontSize: 48, display: 'block', marginBottom: 12, color: 'var(--green)' }} />
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>Tudo pago!</div>
+                  <div>Sem notificações pendentes para {mesL(mes)}</div>
+                </div>
+              ) : (
+                pendentes.map(n => (
+                  <div key={n.id} style={{
+                    background: 'var(--bg2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 10,
+                    padding: 14,
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      marginBottom: 8,
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{
+                          fontSize: 14,
+                          fontWeight: 600,
+                          color: 'var(--text)',
+                          marginBottom: 4,
+                        }}>
+                          {n.titulo}
+                        </div>
+                        {n.descricao && (
+                          <div style={{
+                            fontSize: 12,
+                            color: 'var(--text2)',
+                            marginBottom: 8,
+                          }}>
+                            {n.descricao}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: 'var(--red2)',
+                        fontFamily: 'DM Mono, monospace',
+                      }}>
+                        {eur(n.valor)}
+                      </div>
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      fontSize: 11,
+                      color: 'var(--text2)',
+                      marginBottom: 10,
+                    }}>
+                      <i className="ti ti-calendar" />
+                      <span>Início: {new Date(n.data_inicio).toLocaleDateString('pt-PT')}</span>
+                      <span>•</span>
+                      <span style={{ textTransform: 'capitalize' }}>{n.recorrencia}</span>
+                    </div>
+                    <button
+                      onClick={() => marcarComoPago(n)}
+                      style={{
+                        width: '100%',
+                        padding: '9px',
+                        background: 'var(--green)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 7,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        transition: 'opacity .15s',
+                      }}
+                      onMouseEnter={e => e.target.style.opacity = '0.9'}
+                      onMouseLeave={e => e.target.style.opacity = '1'}
+                    >
+                      <i className="ti ti-check" style={{ fontSize: 14 }} />
+                      Marcar como pago
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
