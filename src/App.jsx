@@ -8,7 +8,7 @@ const sum = (a, f) => a.reduce((s, r) => s + (+r[f] || 0), 0)
 const noites = r => r.entrada && r.saida ? Math.round((new Date(r.saida) - new Date(r.entrada)) / 864e5) : 0
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 const mesL = m => { const [y, mo] = m.split('-'); return MESES[+mo - 1] + ' ' + y }
-const MESES_DISPONIVEIS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06']
+const MESES_DISPONIVEIS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12']
 
 const todayISO = () => new Date().toISOString().slice(0, 10)
 
