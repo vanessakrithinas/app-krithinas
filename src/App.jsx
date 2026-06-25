@@ -581,7 +581,6 @@ function Dashboard({ data, mes, blur = false }) {
           { k: 'entrada', l: 'Check-in' }, { k: 'saida', l: 'Check-out' },
           { k: 'noites', l: 'Noites', fn: r => noites(r) },
           { k: 'tipo', l: 'Tipo' }, { k: 'inquilino', l: 'Hóspede', n: true },
-          { k: 'canal', l: 'Canal' },
           { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—' },
           { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} /> },
         ]}
@@ -1120,7 +1119,7 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
   // Noites alugadas: contar reservas que geram receita (Irasine, Inquilino, Jonhy - não Amigos/Família)
   const noitesAnо = resAnо.filter(r => r.tipo === 'Irasine' || r.tipo === 'Inquilino' || r.tipo === 'Jonhy').reduce((s, r) => s + noites(r), 0)
 
-  const saveRes = async f => { await db.insert('villa_reservas', { entrada: f.entrada, saida: f.saida, tipo: f.tipo || 'Inquilino', inquilino: f.inquilino, canal: f.canal || 'Directo', valor: +f.valor || 0, pagamento: f.pagamento || 'pendente', estado: f.estado || 'confirmado' }); reload(); setModal(null) }
+  const saveRes = async f => { await db.insert('villa_reservas', { entrada: f.entrada, saida: f.saida, tipo: f.tipo || 'Inquilino', inquilino: f.inquilino, valor: +f.valor || 0, pagamento: f.pagamento || 'pendente', estado: f.estado || 'confirmado' }); reload(); setModal(null) }
 
   const handleDayClick = (date, info) => {
     // Se dia vazio, abrir drawer de nova reserva com data de entrada preenchida
@@ -1161,7 +1160,6 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
               saida: dayStr,
               tipo: reserva.tipo,
               inquilino: reserva.inquilino,
-              canal: reserva.canal || 'Directo',
               valor: 0,
               estado: reserva.estado || 'confirmado'
             })
@@ -1197,7 +1195,6 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
               saida: dayStr,
               tipo: dayStr === clickedDate ? tipo : reserva.tipo,
               inquilino: dayStr === clickedDate ? tipo : reserva.inquilino,
-              canal: reserva.canal || 'Directo',
               valor: 0,
               estado: reserva.estado || 'confirmado'
             })
@@ -1210,7 +1207,6 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
           saida: clickedDate,
           tipo: tipo,
           inquilino: tipo,
-          canal: 'Directo',
           valor: 0,
           estado: 'confirmado'
         })
@@ -1237,7 +1233,6 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
         { k: 'noites', l: 'Noites', fn: r => noites(r) },
         { k: 'tipo', l: 'Tipo', edit: 'select', options: ['Irasine','Inquilino','Amigos','Família'] },
         { k: 'inquilino', l: 'Hóspede', n: true, edit: 'text' },
-        { k: 'canal', l: 'Canal', edit: 'select', options: ['Directo','Airbnb','Booking','Outro'] },
         { k: 'valor', l: 'Receita', r: true, fn: r => r.valor > 0 ? eur(r.valor) : '—', edit: 'number' },
         { k: 'pagamento', l: 'Pagamento', fn: r => <Badge s={r.pagamento || 'pendente'} />, edit: 'select', options: ['pago','pendente'] },
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['confirmado','pendente'] },
@@ -1272,7 +1267,6 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
             { k: 'saida', l: 'Data saída', t: 'date' },
             { k: 'tipo', l: 'Tipo', t: 'sel', o: ['Irasine','Inquilino','Amigos','Família'] },
             { k: 'inquilino', l: 'Nome / Quem', t: 'text' },
-            { k: 'canal', l: 'Canal', t: 'sel', o: ['Directo','Airbnb','Booking','Outro'] },
             { k: 'valor', l: 'Receita (€)', t: 'money' },
             { k: 'pagamento', l: 'Pagamento', t: 'estado', o: ['pago','pendente'] },
             { k: 'estado', l: 'Estado', t: 'estado', o: ['confirmado','pendente'] }
