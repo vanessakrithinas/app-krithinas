@@ -934,17 +934,25 @@ function CalendarioVilla({ reservas, onDayClick }) {
 
                 return (
                   <g key={idx} onClick={() => onDayClick && onDayClick(dateStr, info)} style={{ cursor: 'pointer' }}>
+                    {isToday && (
+                      <rect x={x} y={y} width={cellW - 1} height={cellH} rx={3}
+                        fill="none"
+                        stroke="#F59E0B"
+                        strokeWidth={4}
+                        style={{ filter: 'drop-shadow(0 0 4px rgba(245, 158, 11, 0.5))' }}
+                      />
+                    )}
                     <rect x={x} y={y} width={cellW - 1} height={cellH} rx={3}
-                      fill={isToday && !cfg ? '#FEF3C7' : bg}
+                      fill={bg}
                       stroke={isToday ? '#F59E0B' : 'var(--border)'}
-                      strokeWidth={isToday ? 3 : 0.5}
+                      strokeWidth={isToday ? 0 : 0.5}
                       style={{ transition: 'opacity .15s' }}
                       onMouseEnter={e => e.target.style.opacity = '0.75'}
                       onMouseLeave={e => e.target.style.opacity = '1'}
                     />
                     <text x={x + (cellW - 1) / 2} y={y + cellH / 2 + 5}
                       fontSize={11} textAnchor="middle"
-                      fill={isToday && !cfg ? '#92400E' : fg}
+                      fill={fg}
                       fontWeight={isToday ? 700 : cfg ? 600 : 400}
                       style={{ pointerEvents: 'none' }}>
                       {dia}
@@ -1060,17 +1068,25 @@ function CalendarioCopa({ receitas, onDayClick }) {
 
                 return (
                   <g key={idx} onClick={() => onDayClick && onDayClick(dateStr, dayInfo)} style={{ cursor: 'pointer' }}>
+                    {isToday && (
+                      <rect x={x} y={y} width={cellW - 1} height={cellH} rx={3}
+                        fill="none"
+                        stroke="#F59E0B"
+                        strokeWidth={4}
+                        style={{ filter: 'drop-shadow(0 0 4px rgba(245, 158, 11, 0.5))' }}
+                      />
+                    )}
                     <rect x={x} y={y} width={cellW - 1} height={cellH} rx={3}
-                      fill={isToday && !cfg ? '#FEF3C7' : bg}
+                      fill={bg}
                       stroke={isToday ? '#F59E0B' : 'var(--border)'}
-                      strokeWidth={isToday ? 3 : 0.5}
+                      strokeWidth={isToday ? 0 : 0.5}
                       style={{ transition: 'opacity .15s' }}
                       onMouseEnter={e => e.target.style.opacity = '0.75'}
                       onMouseLeave={e => e.target.style.opacity = '1'}
                     />
                     <text x={x + (cellW - 1) / 2} y={y + cellH / 2 + 5}
                       fontSize={11} textAnchor="middle"
-                      fill={isToday && !cfg ? '#92400E' : fg}
+                      fill={fg}
                       fontWeight={isToday ? 700 : cfg ? 600 : 400}
                       style={{ pointerEvents: 'none' }}>
                       {dia}
