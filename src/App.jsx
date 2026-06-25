@@ -1621,7 +1621,7 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
 // ══════════════════════════════════════════════════════════════════════════
 // APP SHELL
 // ══════════════════════════════════════════════════════════════════════════
-const TABLES = ['vanessa_rendimentos','vanessa_despesas','vanessa_freelancers','maezona_despesas','maezona_rendimentos','milton_despesas','milton_concertos','villa_reservas','copa_receitas','copa_despesas','copa_transferencias']
+const TABLES = ['vanessa_rendimentos','vanessa_despesas','vanessa_freelancers','maezona_despesas','maezona_rendimentos','milton_despesas','milton_concertos','villa_reservas','copa_receitas','copa_despesas','copa_transferencias','notificacoes','notificacoes_historico']
 
 const PAGE_DEFAULT_TABS = { vanessa: 'desp', maezona: 'desp', milton: 'conc', villa: 'cal', copa: 'desp' }
 
@@ -1645,6 +1645,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [valuesVisible, setValuesVisible] = useState(true)
+  const [notificacoesOpen, setNotificacoesOpen] = useState(false)
   const [vanessaTab, setVanessaTab] = useState(() => getInitialTab('vanessa', ['desp','rend','free']))
   const [maezonaTab, setMaezonaTab] = useState(() => getInitialTab('maezona', ['desp','rend']))
   const [miltonTab,  setMiltonTab]  = useState(() => getInitialTab('milton',  ['conc','desp']))
