@@ -6,51 +6,42 @@
 - Notificação exemplo criada: Garagem 33 Mãezona (123€ trimestral, início 01/07/2026)
 - Tabelas adicionadas ao TABLES array
 - State `notificacoesOpen` criado
+- ✅ Função `getNotificacoesPendentes()` implementada
+  - Calcula quais notificações estão ativas para o mês atual
+  - Suporta todos os tipos de recorrência (único, mensal, trimestral, anual)
+  - Verifica se já foi paga no histórico
+- ✅ Badge com contador no topbar
+  - Botão com ícone de sino
+  - Badge vermelho com número de pendentes
+  - Aparece só quando há notificações
+- ✅ Painel lateral de notificações
+  - Lista todas as notificações pendentes do mês
+  - Mostra título, descrição, valor, data início e recorrência
+  - Mensagem "Tudo pago!" quando não há pendentes
+- ✅ Botão "Marcar como pago"
+  - Insere registo em `notificacoes_historico`
+  - Recarrega dados automaticamente
+  - Notificação desaparece da lista
 
-## 📋 Próximos passos
+## 📋 Melhorias futuras (opcionais)
 
-### 1. Calcular notificações pendentes
-Adicionar função que calcula quais notificações estão ativas para o mês atual:
-```javascript
-const getNotificacoesPendentes = (notificacoes, historico, mes) => {
-  // Para cada notificação ativa
-  // Verificar se está no período (trimestral = a cada 3 meses)
-  // Verificar se já foi paga (check historico)
-  // Retornar lista de pendentes
-}
-```
+### 1. Gestão de notificações
+- Adicionar página para criar/editar/apagar notificações
+- Permitir activar/desactivar notificações
+- Adicionar campo "categoria" (maezona, vanessa, milton, etc.)
 
-### 2. Badge no Topbar
-Adicionar ao lado do botão de ocultar valores:
-```jsx
-<button onClick={() => setNotificacoesOpen(true)} style={{...}}>
-  <i className="ti ti-bell" />
-  {pendentes.length > 0 && <span className="badge-count">{pendentes.length}</span>}
-</button>
-```
+### 2. Histórico e relatórios
+- Ver histórico de pagamentos por notificação
+- Relatório anual de despesas recorrentes
+- Exportar histórico para CSV
 
-### 3. Painel Lateral
-Criar componente similar ao drawer:
-- Lista de notificações pendentes
-- Info: título, descrição, valor, vencimento
-- Botão "Marcar como pago" que:
-  - Insere em `notificacoes_historico`
-  - Reload dos dados
+### 3. Lembretes
+- Notificar X dias antes do vencimento
+- Enviar email/SMS (integração externa)
 
-### 4. CSS do Badge
-```css
-.badge-count {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background: #EF4444;
-  color: white;
-  border-radius: 10px;
-  padding: 2px 6px;
-  font-size: 10px;
-  font-weight: 700;
-}
-```
+### 4. Dashboard
+- Card na Visão Geral com resumo de notificações
+- Gráfico de despesas recorrentes vs pontuais
 
 ## 🎯 Lógica de Recorrência
 
