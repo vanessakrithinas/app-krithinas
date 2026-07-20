@@ -1760,12 +1760,29 @@ export default function App() {
   const pendentes = data ? getNotificacoesPendentes(data.notificacoes || [], data.notificacoes_historico || [], mes) : []
 
   const marcarComoPago = async (notificacao) => {
-    await db.insert('notificacoes_historico', {
-      notificacao_id: notificacao.id,
-      mes_pago: mes,
-      data_pagamento: todayISO(),
-      pago: true,
-    })
+    // Verificar se já existe um registo para esta notificação neste mês
+    const historico = data.notificacoes_historico || []
+    const jaExiste = historico.find(h =>
+      h.notificacao_id === notificacao.id &&
+      h.mes_pago === mes
+    )
+
+    if (jaExiste) {
+      // Atualizar o registo existente para pago=true
+      await db.update('notificacoes_historico', jaExiste.id, {
+        data_pagamento: todayISO(),
+        pago: true,
+      })
+    } else {
+      // Criar novo registo
+      await db.insert('notificacoes_historico', {
+        notificacao_id: notificacao.id,
+        mes_pago: mes,
+        data_pagamento: todayISO(),
+        pago: true,
+      })
+    }
+
     await load(true)
   }
 
