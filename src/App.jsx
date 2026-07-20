@@ -165,7 +165,7 @@ function SecHead({ label, onAdd }) {
   )
 }
 
-function Tbl({ cols, rows, table, onSave }) {
+function Tbl({ cols, rows, table, onSave, onEdit }) {
   const [editing, setEditing] = useState(null)
   const [val, setVal] = useState('')
   const [confirming, setConfirming] = useState(null)
@@ -180,7 +180,13 @@ function Tbl({ cols, rows, table, onSave }) {
     if (!editing) return
     setEditing(null)
     if (String(val) === String(r[c.k] ?? '')) return
-    await db.update(table, r.id, { [c.k]: c.edit === 'number' ? +val : val })
+
+    // Se existe callback onEdit, usa-o; senão, update normal
+    if (onEdit) {
+      await onEdit(r, c.k, c.edit === 'number' ? +val : val)
+    } else {
+      await db.update(table, r.id, { [c.k]: c.edit === 'number' ? +val : val })
+    }
     onSave && onSave()
   }
 
@@ -1182,6 +1188,44 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
 
   const saveRes = async f => { await db.insert('villa_reservas', { entrada: f.entrada, saida: f.saida, tipo: f.tipo || 'Inquilino', inquilino: f.inquilino, valor: +f.valor || 0, pagamento: f.pagamento || 'pendente', estado: f.estado || 'confirmado' }); reload(); setModal(null) }
 
+  // Sincronizar pagamento de todas as reservas do mesmo inquilino no mesmo mês
+  const handleEditReserva = async (reserva, colKey, newValue) => {
+    // Atualizar a reserva editada
+    await db.update('villa_reservas', reserva.id, { [colKey]: newValue })
+
+    // Se editou o campo 'pagamento', sincronizar todas as outras reservas do mesmo inquilino no mesmo mês
+    if (colKey === 'pagamento' && reserva.inquilino) {
+      const outrasReservas = resMes.filter(r =>
+        r.id !== reserva.id &&
+        r.inquilino === reserva.inquilino
+      )
+
+      // Atualizar todas as outras reservas do mesmo inquilino
+      for (const outra of outrasReservas) {
+        await db.update('villa_reservas', outra.id, { pagamento: newValue })
+      }
+    }
+  }
+
+  // Para "Todas as reservas" - sincronizar com TODAS as reservas do inquilino (não só do mês)
+  const handleEditReservaAll = async (reserva, colKey, newValue) => {
+    // Atualizar a reserva editada
+    await db.update('villa_reservas', reserva.id, { [colKey]: newValue })
+
+    // Se editou o campo 'pagamento', sincronizar TODAS as reservas do mesmo inquilino
+    if (colKey === 'pagamento' && reserva.inquilino) {
+      const outrasReservas = resAnо.filter(r =>
+        r.id !== reserva.id &&
+        r.inquilino === reserva.inquilino
+      )
+
+      // Atualizar todas as outras reservas do mesmo inquilino
+      for (const outra of outrasReservas) {
+        await db.update('villa_reservas', outra.id, { pagamento: newValue })
+      }
+    }
+  }
+
   const handleDayClick = (date, info) => {
     // Se dia vazio, abrir drawer de nova reserva com data de entrada preenchida
     if (!info) {
@@ -1288,7 +1332,7 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
       <div className="info-strip teal"><i className="ti ti-info-circle" /> Agosto: 650€/sem · 85€/dia &nbsp;|&nbsp; Outros meses: 600€/sem · 80€/dia</div>
       <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'res', l: 'Reservas mês' }, { k: 'all', l: 'Todas as Reservas' }, { k: 'desp', l: 'Despesas' }]} active={tab} onChange={setTab} />
       {tab === 'cal' && <><SecHead label="Calendário de ocupação 2026 (clica num dia para editar)" onAdd={() => setModal('res')} /><CalendarioVilla reservas={resAnо} onDayClick={handleDayClick} /></>}
-      {tab === 'res' && <><SecHead label={`Reservas — ${mesL(mes)}`} onAdd={() => setModal('res')} /><Tbl table="villa_reservas" onSave={reload} cols={[
+      {tab === 'res' && <><SecHead label={`Reservas — ${mesL(mes)}`} onAdd={() => setModal('res')} /><Tbl table="villa_reservas" onSave={reload} onEdit={handleEditReserva} cols={[
         { k: 'entrada', l: 'Check-in', edit: 'date' },
         { k: 'saida', l: 'Check-out', edit: 'date' },
         { k: 'noites', l: 'Noites', fn: r => noites(r) },
@@ -1298,7 +1342,7 @@ function VillaPage({ data, mes, reload, tab, setTab, blur = false }) {
         { k: 'pagamento', l: 'Pagamento', fn: r => <Badge s={r.pagamento || 'pendente'} />, edit: 'select', options: ['pago','pendente'] },
         { k: 'estado', l: 'Estado', fn: r => <Badge s={r.estado} />, edit: 'select', options: ['confirmado','pendente'] },
       ]} rows={resMes} /></>}
-      {tab === 'all' && <><SecHead label="Todas as reservas 2026" onAdd={() => setModal('res')} /><Tbl table="villa_reservas" onSave={reload} cols={[
+      {tab === 'all' && <><SecHead label="Todas as reservas 2026" onAdd={() => setModal('res')} /><Tbl table="villa_reservas" onSave={reload} onEdit={handleEditReservaAll} cols={[
         { k: 'entrada', l: 'Check-in', edit: 'date' },
         { k: 'saida', l: 'Check-out', edit: 'date' },
         { k: 'noites', l: 'Noites', fn: r => noites(r) },
