@@ -1563,7 +1563,7 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
         <StatCard label="Transferido PT" value={eur(sum(tr, 'valor_eur'))} sub={`${tr.length} transf.`} ac="var(--blue2)" blur={blur} />
       </div>
       <div className="info-strip blue"><i className="ti ti-currency-real" /> Valores em BRL · Taxa referência: 1 BRL ≈ 0,18 EUR · Pagamento recebido no mês seguinte ao aluguel</div>
-      <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'desp', l: 'Despesas' }, { k: 'rec', l: 'Receitas' }, { k: 'res', l: 'Resumo Ano' }, { k: 'tr', l: 'Transf. PT' }]} active={tab} onChange={setTab} />
+      <Tabs items={[{ k: 'cal', l: 'Calendário 2026' }, { k: 'rec', l: 'Receitas mês' }, { k: 'desp', l: 'Despesas' }, { k: 'res', l: 'Resumo Ano' }, { k: 'tr', l: 'Transf. PT' }]} active={tab} onChange={setTab} />
       {tab === 'cal' && <><SecHead label="Calendário de ocupação 2026 (clica num dia para editar)" onAdd={() => setModal('rec')} /><CalendarioCopa receitas={recAnо} onDayClick={handleDayClick} /></>}
       {tab === 'desp' && <><SecHead label={`Despesas — ${mesL(mes)}`} onAdd={() => setModal('desp')} /><Tbl table="copa_despesas" onSave={reload} cols={[
         { k: 'data', l: 'Data', edit: 'date' },
