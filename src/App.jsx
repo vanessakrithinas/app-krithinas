@@ -1514,7 +1514,13 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
   const saveTr = async f => { await db.insert('copa_transferencias', { data: f.data, valor_brl: +f.valor_brl || 0, valor_eur: +f.valor_eur || 0, notas: f.notas }); reload(); setModal(null) }
 
   const handleDayClick = (dateStr, info) => {
-    setCalendarModal({ date: dateStr, info })
+    // Se clicar num dia vazio, abre o Drawer de nova receita com a data pré-preenchida
+    if (!info) {
+      setModal({ type: 'rec', prefill: { entrada: dateStr, saida: dateStr } })
+    } else {
+      // Se clicar num dia ocupado, abre modal simples para alterar canal
+      setCalendarModal({ date: dateStr, info })
+    }
   }
 
   const handleCalendarSave = async (canal) => {
@@ -1612,14 +1618,21 @@ function CopaPage({ data, mes, reload, tab, setTab, blur = false }) {
       })()} /></>}
       {tab === 'tr' && <><SecHead label="Transferências BRL → EUR" onAdd={() => setModal('tr')} /><Tbl cols={[{ k: 'data', l: 'Data' }, { k: 'notas', l: 'Referência', n: true }, { k: 'valor_brl', l: 'Enviado BRL', r: true, fn: r => brl(r.valor_brl) }, { k: 'valor_eur', l: 'Recebido EUR', r: true, fn: r => eur(r.valor_eur) }, { k: 'taxa', l: 'Taxa real', r: true, fn: r => r.valor_brl ? (r.valor_eur / r.valor_brl).toFixed(4) : '—' }]} rows={tr} /></>}
       {modal === 'desp' && <Drawer title="Nova despesa — Copa Rio" ac="var(--blue2)" fields={[{ k: 'dia', l: 'Dia', t: 'number', p: '1-31' }, { k: 'categoria', l: 'Categoria', t: 'cat', o: ['condomínio','energia','gás','impostos','internet','retenção','seguros','outros'] }, { k: 'descricao', l: 'Descrição', t: 'text' }, { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' }]} onClose={() => setModal(null)} onSave={async f => { const dataCompleta = f.dia ? `${mes}-${String(f.dia).padStart(2, '0')}` : null; await db.insert('copa_despesas', { mes, data: dataCompleta, categoria: f.categoria || 'outros', descricao: f.descricao, valor_brl: +f.valor_brl || 0 }); reload(); setModal(null) }} />}
-      {modal === 'rec' && <Drawer title="Nova receita — Copa Rio" ac="var(--blue2)" fields={[
-        { k: 'entrada', l: 'Check-in', t: 'date' },
-        { k: 'saida', l: 'Check-out', t: 'date' },
-        { k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' },
-        { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost','Booking','Directo'] },
-        { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' },
-        { k: 'taxa', l: 'Taxa câmbio', t: 'text', p: '0.18' }
-      ]} onClose={() => setModal(null)} onSave={saveRec} />}
+      {(modal === 'rec' || (modal && modal.type === 'rec')) && <Drawer
+        title="Nova receita — Copa Rio"
+        ac="var(--blue2)"
+        fields={[
+          { k: 'entrada', l: 'Check-in', t: 'date' },
+          { k: 'saida', l: 'Check-out', t: 'date' },
+          { k: 'descricao', l: 'Descrição', t: 'text', p: 'Aluguel AP 812' },
+          { k: 'canal', l: 'Canal', t: 'sel', o: ['RioHost','Booking','Directo'] },
+          { k: 'valor_brl', l: 'Valor (BRL)', t: 'money' },
+          { k: 'taxa', l: 'Taxa câmbio', t: 'text', p: '0.18' }
+        ]}
+        defaultData={modal && modal.prefill ? modal.prefill : {}}
+        onClose={() => setModal(null)}
+        onSave={saveRec}
+      />}
       {modal === 'tr' && <Drawer title="Nova transferência BRL → EUR" ac="var(--blue2)" fields={[{ k: 'data', l: 'Data', t: 'date' }, { k: 'valor_brl', l: 'Valor enviado (BRL)', t: 'money' }, { k: 'valor_eur', l: 'Valor recebido (EUR)', t: 'money' }, { k: 'notas', l: 'Referência', t: 'text', p: 'Ex: Jan-Mar 2026' }]} onClose={() => setModal(null)} onSave={saveTr} />}
 
       {calendarModal && (
